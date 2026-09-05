@@ -1,0 +1,19 @@
+# API anahtarlari - ASLA GitHub'a gitmemeli
+.env
+*.key
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Not: ciktilar/ klasoru BILEREK gitignore'a alinmadi.
+# Toplu test sonuclari capstone kaniti; ekip arkadasinin kendi API kotasini
+# harcamadan gorebilmesi icin repoda tutuluyor.
+*.log
+
+# Isletim sistemi
+.DS_Store
+Thumbs.db
