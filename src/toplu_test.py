@@ -89,6 +89,8 @@ def tek_ornek_calistir(client, satir: dict, teknik: str,
             "sh_kelime": len(sonuc.shopier.split()),
             "seo_kapsam": uret.seo_kapsami(tum_metin, kelimeler),
             "seo_toplam": len(kelimeler),
+            "klise": uret.klise_sayisi(tum_metin),
+            "benzerlik": round(uret.kanal_benzerligi(sonuc.instagram, sonuc.shopier), 2),
             "hata": "",
         }
 
@@ -97,7 +99,8 @@ def tek_ornek_calistir(client, satir: dict, teknik: str,
         "id": satir["id"], "kategori": kategori, "teknik": teknik,
         "anlatim": satir["anlatim"], "instagram": "", "shopier": "",
         "ig_kelime": 0, "sh_kelime": 0, "seo_kapsam": 0,
-        "seo_toplam": len(kelimeler), "hata": str(son_hata)[:200],
+        "seo_toplam": len(kelimeler), "klise": 0, "benzerlik": 0.0,
+        "hata": str(son_hata)[:200],
     }
 
 
@@ -139,7 +142,8 @@ def kaydet(sonuclar: list[dict], teknik: str) -> tuple[Path, Path]:
 
     # CSV — analiz için
     alanlar = ["id", "kategori", "teknik", "anlatim", "instagram", "shopier",
-               "ig_kelime", "sh_kelime", "seo_kapsam", "seo_toplam", "hata"]
+               "ig_kelime", "sh_kelime", "seo_kapsam", "seo_toplam",
+               "klise", "benzerlik", "hata"]
     with open(csv_yol, "w", encoding="utf-8-sig", newline="") as f:
         yazici = csv.DictWriter(f, fieldnames=alanlar)
         yazici.writeheader()
@@ -158,7 +162,9 @@ def kaydet(sonuclar: list[dict], teknik: str) -> tuple[Path, Path]:
                 continue
             f.write(f"**Instagram** ({s['ig_kelime']} kelime)\n\n{s['instagram']}\n\n")
             f.write(f"**Shopier** ({s['sh_kelime']} kelime)\n\n{s['shopier']}\n\n")
-            f.write(f"*SEO kapsamı: {s['seo_kapsam']}/{s['seo_toplam']}*\n\n---\n\n")
+            f.write(f"*SEO kapsamı: {s['seo_kapsam']}/{s['seo_toplam']}  ·  "
+                    f"klişe: {s['klise']}  ·  kanal benzerliği: {s['benzerlik']}*"
+                    f"\n\n---\n\n")
 
     return csv_yol, md_yol
 
@@ -186,6 +192,13 @@ def ozet(sonuclar: list[dict]) -> None:
     print(f"  Ort. Shopier uzunluğu   : {ort('sh_kelime'):.0f} kelime")
     print(f"  Ort. SEO kapsamı        : {ort('seo_kapsam'):.1f}/"
           f"{ort('seo_toplam'):.0f}  (%{kapsam_orani * 100:.0f})")
+    print()
+    print(f"  KALİTE (düşük olması iyi):")
+    klise_toplam = sum(s["klise"] for s in basarili)
+    print(f"    Klişe kalıp sayısı    : {klise_toplam} toplam, "
+          f"{ort('klise'):.1f} ortalama")
+    print(f"    Kanal benzerliği      : {ort('benzerlik'):.2f}  "
+          f"(0 = tamamen farklı, 1 = aynı)")
 
     # Kategori kırılımı — hangi kategoride daha iyi çalışıyor?
     print(f"\n  Kategoriye göre SEO kapsamı:")

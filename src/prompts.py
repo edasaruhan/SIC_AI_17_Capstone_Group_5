@@ -28,6 +28,19 @@ MUTLAK KURALLAR:
    üretici nasıl anlatıyorsa o sıcaklıkta yaz.
 5. Emeği ve üretim sürecini öne çıkar — hikâye, ürünün en değerli parçasıdır.
 6. Türkçe yaz. Yabancı kelime kullanma (gerekli değilse).
+7. DOLGU CÜMLESİ KURMA. Üretici somut bir şey anlattı; sen onun üzerine duygusal
+   süs ekleme. Aşağıdaki kalıplar ve benzerleri YASAK:
+     - "her ilmeğinde ayrı bir emek/özen var"
+     - "sevgiyle hazırlandı", "göz nuru", "el emeği göz nuru"
+     - "özenli bir dokunuş arayanlar için"
+     - "anlamlı bir hediye arayanlar için"
+     - "yaşamınıza değer katacak", "fark yaratan"
+     - "her biri ayrı bir sanat eseri"
+   Bir cümle, anlatımda olmayan bir bilgi taşımıyorsa o cümleyi hiç yazma.
+   Kısa ve dolu olmak, uzun ve süslü olmaktan iyidir.
+8. Üreticinin kullandığı somut kelimeleri koru (örn. "anneannemden öğrendiğim",
+   "üç günümü alıyor", "bahçemizin"). Bunları eş anlamlılarıyla değiştirme —
+   otantikliği taşıyan şey tam olarak bu kelimelerdir.
 
 Ürettiğin içerik, üretici tarafından okunup onaylanacaktır. Onun adına konuşuyorsun;
 söylemediği bir şeyi söyleme."""
@@ -36,15 +49,29 @@ söylemediği bir şeyi söyleme."""
 # ---------------------------------------------------------------------------
 # Çıktı biçimi — iki kanal, ayrıştırılabilir olsun diye etiketli
 # ---------------------------------------------------------------------------
-CIKTI_BICIMI = """Çıktıyı tam olarak aşağıdaki biçimde ver. Etiketleri değiştirme,
-başka hiçbir açıklama ekleme:
+CIKTI_BICIMI = """İKİ KANAL BİRBİRİNDEN FARKLI OLMALI. Aynı cümleleri iki yere yazma;
+ikisi farklı işe yarar:
+
+[INSTAGRAM]  → Amaç: kaydırırken DURDURMAK.
+  - İlk cümle, anlatımdaki EN İLGİNÇ tek detayla başlasın (süre, teknik, kimden
+    öğrenildiği gibi). Ürün tanımıyla başlama, merak uyandır.
+  - 2-3 kısa cümle. Konuşma dili. "Ben" diliyle yaz.
+  - Malzeme listesi, ölçü, teknik ayrıntı YAZMA — orası Shopier'in işi.
+  - En fazla 5 hashtag, en sonda.
+
+[SHOPIER]  → Amaç: arayan kişinin BULMASI ve karar vermesi.
+  - İlk cümle ürünün ne olduğunu net söylesin (arama sonucunda görünecek).
+  - Malzeme, üretim şekli, süre, varsa ölçü/gramaj açıkça yazılsın.
+  - Son cümle kime uygun olduğunu somut söylesin.
+  - Bilgi verici ve sakin bir dil; Instagram'daki duygusal cümleleri TEKRARLAMA.
+
+Çıktıyı tam olarak şu biçimde ver, etiketleri değiştirme, başka açıklama ekleme:
 
 [INSTAGRAM]
-(Instagram gönderisi metni. 2-4 cümle, sıcak ve samimi. Sonunda en fazla 5 hashtag.)
+(metin)
 
 [SHOPIER]
-(Ürün sayfası açıklaması. 3-5 cümle. Malzeme, üretim şekli ve kime uygun olduğu
-net yazılsın. Arama yapan birinin kullanacağı kelimeler doğal biçimde geçsin.)"""
+(metin)"""
 
 
 # ---------------------------------------------------------------------------
@@ -148,28 +175,41 @@ def _kelime_blogu(anahtar_kelimeler) -> str:
 # A3 aşamasında gerçek üreticinin kendi metinleriyle değiştirilecek.
 VARSAYILAN_ORNEKLER = [
     {
+        # Instagram: kanca = SÜRE. Malzeme yok, kisa, konusma dili.
+        # Shopier  : malzeme + sure + kime uygun. Duygusal cumle yok.
         "anlatim": "Keçeden bebek patiği yapıyorum. Yün keçe kullanıyorum, "
                    "boyası doğal. Bir çiftini bir günde bitiriyorum.",
-        "instagram": "Her ilmeği elimle attığım keçe patikler… Doğal boyalı yün "
-                     "keçeden, minik ayaklar için. Bir çifti tam bir günümü alıyor "
-                     "ama o minik ayaklara değiyor.\n"
+        "instagram": "Bir çift patik, tam bir günüm. Ama o minik ayaklara bakınca "
+                     "değiyor.\n"
                      "#keçepatik #elemeği #bebekhediyesi",
-        "shopier": "El yapımı keçe bebek patiği. Doğal boyalı yün keçeden, tamamen "
-                   "elde dikilerek üretilmiştir. Her çift yaklaşık bir günlük emekle "
-                   "hazırlanır. Bebek hediyesi arayanlar ve doğal malzeme tercih eden "
+        "shopier": "El yapımı keçe bebek patiği. Doğal boyalı yün keçeden elde "
+                   "dikilmiştir. Bir çift yaklaşık bir günlük emekle hazırlanır. "
+                   "Yeni doğan hediyesi arayanlar ve doğal malzeme tercih eden "
                    "anneler için uygundur.",
     },
     {
+        # Instagram: kanca = "sadece iki malzeme" carpiciligi.
+        # Shopier  : gramaj, yontem, ne icermedigi, kime uygun.
         "anlatim": "Ev yapımı vişne reçeli. Kendi bahçemizin vişnesi, şeker dışında "
                    "hiçbir şey katmıyorum. 400 gramlık kavanozlarda.",
-        "instagram": "Bahçemizin vişnesi, bir de şeker. Başka hiçbir şey yok içinde. "
-                     "Kavanozları tek tek dolduruyorum, tam kıvamında.\n"
+        "instagram": "İçinde iki şey var: bahçemizin vişnesi ve şeker. Başka hiçbir "
+                     "şey.\n"
                      "#evyapımıreçel #vişnereçeli #katkısız",
         "shopier": "Ev yapımı vişne reçeli, 400 g cam kavanozda. Kendi bahçemizde "
-                   "yetişen vişnelerden, yalnızca şeker eklenerek geleneksel yöntemle "
+                   "yetişen vişnelerden yalnızca şeker eklenerek geleneksel yöntemle "
                    "pişirilmiştir. Koruyucu, renklendirici veya aroma içermez. "
                    "Kahvaltılık doğal reçel arayanlar için.",
     },
+]
+
+
+# Çıktı kalitesini ölçmek için taranan klişe kalıpları.
+# uret.klise_sayisi() bu listeyi kullanır; toplu testte metrik olarak raporlanır.
+KLISE_KALIPLARI = [
+    "ilmeğinde", "sevgiyle hazırlan", "göz nuru",
+    "özenli bir dokunuş", "anlamlı bir hediye", "değer katacak", "fark yaratan",
+    "ayrı bir sanat eseri", "ayrı bir özen", "emek ve özen", "özenle hazırlan",
+    "sizler için", "hayatınıza", "eşsiz bir deneyim", "vazgeçilmez",
 ]
 
 

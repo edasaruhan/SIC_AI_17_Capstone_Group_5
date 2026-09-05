@@ -117,6 +117,32 @@ def seo_kapsami(metin: str, anahtar_kelimeler: list[str]) -> int:
     return sum(1 for k in anahtar_kelimeler if k.lower() in kucuk)
 
 
+def klise_sayisi(metin: str) -> int:
+    """
+    Metinde kaç klişe/dolgu kalıbı geçtiğini sayar.
+
+    Kalite göstergesi: DÜŞÜK olması iyidir. Prompt iyileştirmesinin (A3) etkisini
+    ölçmek için kullanılır — v1 ve v2 çıktıları bu sayıyla karşılaştırılır.
+    """
+    kucuk = metin.lower()
+    return sum(1 for k in prompts.KLISE_KALIPLARI if k in kucuk)
+
+
+def kanal_benzerligi(metin_a: str, metin_b: str) -> float:
+    """
+    İki kanalın ne kadar benzediğini 0-1 arası ölçer (Jaccard benzerliği).
+
+    Kalite göstergesi: DÜŞÜK olması iyidir. Instagram ve Shopier farklı işlere
+    hizmet ettiği için aynı cümleleri tekrarlamamaları beklenir.
+    """
+    ayikla = lambda m: {k.strip(".,!?;:#").lower()
+                        for k in m.split() if len(k) > 3 and not k.startswith("#")}
+    a, b = ayikla(metin_a), ayikla(metin_b)
+    if not a or not b:
+        return 0.0
+    return len(a & b) / len(a | b)
+
+
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     ornek = ("El örgüsü bebek battaniyesi yapıyorum. Organik pamuk ipliği "
