@@ -78,13 +78,15 @@ ikisi farklı işe yarar:
 # 1) ZERO-SHOT — örnek verilmez (baseline)
 # ---------------------------------------------------------------------------
 def zero_shot(anlatim: str, kategori: str, ton: str = "sıcak ve samimi",
-              anahtar_kelimeler: list[str] | None = None) -> str:
+              anahtar_kelimeler: list[str] | None = None,
+              uslup_ornekleri: list[str] | None = None) -> str:
     kelime_blogu = _kelime_blogu(anahtar_kelimeler)
+    uslup = uslup_blogu(uslup_ornekleri)
     return f"""{SISTEM_TALIMATI}
 
 ÜRÜN KATEGORİSİ: {kategori}
 İSTENEN TON: {ton}
-{kelime_blogu}
+{kelime_blogu}{uslup}
 ÜRETİCİNİN KENDİ ANLATIMI:
 \"\"\"{anlatim}\"\"\"
 
@@ -98,10 +100,12 @@ Yukarıdaki anlatımı kullanarak pazarlama içeriği yaz.
 # ---------------------------------------------------------------------------
 def few_shot(anlatim: str, kategori: str, ton: str = "sıcak ve samimi",
              anahtar_kelimeler: list[str] | None = None,
-             ornekler: list[dict] | None = None) -> str:
+             ornekler: list[dict] | None = None,
+             uslup_ornekleri: list[str] | None = None) -> str:
     """`ornekler`: [{"anlatim": "...", "instagram": "...", "shopier": "..."}, ...]"""
     ornekler = ornekler or VARSAYILAN_ORNEKLER
     kelime_blogu = _kelime_blogu(anahtar_kelimeler)
+    uslup = uslup_blogu(uslup_ornekleri)
 
     ornek_blogu = ""
     for i, o in enumerate(ornekler, 1):
@@ -126,7 +130,7 @@ içeriklerini kopyalama.
 --- ŞİMDİ SIRA SENDE ---
 ÜRÜN KATEGORİSİ: {kategori}
 İSTENEN TON: {ton}
-{kelime_blogu}
+{kelime_blogu}{uslup}
 ÜRETİCİNİN KENDİ ANLATIMI:
 \"\"\"{anlatim}\"\"\"
 
@@ -137,13 +141,15 @@ içeriklerini kopyalama.
 # 3) CHAIN-OF-THOUGHT — önce düşün, sonra yaz
 # ---------------------------------------------------------------------------
 def chain_of_thought(anlatim: str, kategori: str, ton: str = "sıcak ve samimi",
-                     anahtar_kelimeler: list[str] | None = None) -> str:
+                     anahtar_kelimeler: list[str] | None = None,
+                     uslup_ornekleri: list[str] | None = None) -> str:
     kelime_blogu = _kelime_blogu(anahtar_kelimeler)
+    uslup = uslup_blogu(uslup_ornekleri)
     return f"""{SISTEM_TALIMATI}
 
 ÜRÜN KATEGORİSİ: {kategori}
 İSTENEN TON: {ton}
-{kelime_blogu}
+{kelime_blogu}{uslup}
 ÜRETİCİNİN KENDİ ANLATIMI:
 \"\"\"{anlatim}\"\"\"
 
@@ -161,6 +167,29 @@ Bu düşünmeyi yaptıktan sonra, yalnızca son içeriği aşağıdaki biçimde 
 # ---------------------------------------------------------------------------
 # Yardımcılar
 # ---------------------------------------------------------------------------
+def uslup_blogu(uslup_ornekleri: list[str] | None) -> str:
+    """
+    Üreticinin kendi yazdığı metinlerden üslup referansı bloğu üretir.
+
+    Arayüzdeki 'Ton Profilim' bölümünde kullanıcı kendi eski paylaşımlarını
+    yapıştırır; bu metinler modele "bu kişinin yazım tarzı budur" diye verilir.
+    Few-shot'tan farkı: hazır örnek çifti değil, doğrudan üslup referansıdır.
+    """
+    if not uslup_ornekleri:
+        return ""
+    temiz = [o.strip() for o in uslup_ornekleri if o and o.strip()]
+    if not temiz:
+        return ""
+    blok = "\n".join(f'  {i}. "{o}"' for i, o in enumerate(temiz, 1))
+    return (
+        "\nBU ÜRETİCİNİN KENDİ YAZDIĞI METİNLER (üslup referansı):\n"
+        f"{blok}\n"
+        "Yeni içeriği yazarken bu metinlerin cümle uzunluğunu, samimiyet düzeyini "
+        "ve kelime tercihlerini taklit et. İçeriklerini kopyalama — yalnızca ÜSLUBU "
+        "al. Bu kişi nasıl yazıyorsa öyle yaz.\n"
+    )
+
+
 def _kelime_blogu(anahtar_kelimeler) -> str:
     """SEO kelimeleri varsa prompt'a eklenecek blok (A4 aşamasında beslenecek)."""
     if not anahtar_kelimeler:

@@ -6,6 +6,10 @@
     streamlit run src/app.py
 """
 
+import csv
+import glob
+import io
+import os
 from datetime import datetime
 
 import streamlit as st
@@ -21,119 +25,115 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# --- Marka renkleri ---------------------------------------------------------
-KOYU = "#4A2138"      # derin bordo
-ANA = "#9C4368"       # ana vurgu
-ALTIN = "#C08A2D"
-YESIL = "#7E9B85"
-ACIK = "#F3ECE4"
-ZEMIN = "#FDFBFA"
+KOYU = "#4A2138"; ANA = "#9C4368"; ALTIN = "#C08A2D"
+YESIL = "#7E9B85"; ACIK = "#F3ECE4"; ZEMIN = "#FDFBFA"
+
+KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+# ---------------------------------------------------------------------------
+# Oturum durumu
+# ---------------------------------------------------------------------------
+varsayilanlar = {
+    "sonuc": None, "gecmis": [], "anlatim_metni": "",
+    "uslup_ornekleri": [], "karsilastirma": None, "toplu_sonuc": None,
+}
+for anahtar, deger in varsayilanlar.items():
+    st.session_state.setdefault(anahtar, deger)
+
+
+# ---------------------------------------------------------------------------
+# KENAR ÇUBUĞU — ayarlar ve erişilebilirlik
+# ---------------------------------------------------------------------------
+with st.sidebar:
+    st.markdown("### ⚙️ Ayarlar")
+    buyuk_yazi = st.toggle("♿ Büyük yazı modu", value=False,
+                           help="Metinleri büyütür — okuması zor gelenler için.")
+    st.divider()
+    st.markdown("**Model**")
+    st.code(uret.MODEL, language=None)
+    if st.session_state.uslup_ornekleri:
+        st.success(f"🎙️ Ton profili aktif ({len(st.session_state.uslup_ornekleri)} örnek)")
+    else:
+        st.info("Ton profili tanımlı değil.\n\n*Ton Profilim* sekmesinden ekleyin.")
+    st.divider()
+    st.caption("Üretken Kadın · Samsung Innovation Campus\nGenerative AI Capstone")
+
+YAZI = "1.06rem" if buyuk_yazi else "0.9rem"
+BASLIK = "2.4rem" if buyuk_yazi else "2.05rem"
 
 st.markdown(f"""
 <style>
-  /* --- Streamlit'in kendi ustbilgisini gizle --- */
   [data-testid="stHeader"] {{ background: transparent; height: 0; }}
   #MainMenu, footer {{ visibility: hidden; }}
   .stApp {{ background: {ZEMIN}; }}
-  .block-container {{ padding-top: 1rem; max-width: 1180px; }}
+  .block-container {{ padding-top: 1rem; max-width: 1200px; }}
+  .stTextArea textarea, .stTextInput input {{ font-size: {YAZI} !important; }}
 
-  /* --- NAVBAR --- */
-  .navbar {{
-      display: flex; align-items: center; justify-content: space-between;
+  .navbar {{ display: flex; align-items: center; justify-content: space-between;
       background: {KOYU}; padding: 0.85rem 1.6rem; border-radius: 14px;
-      margin-bottom: 1.4rem; box-shadow: 0 4px 18px rgba(74,33,56,0.18);
-  }}
+      margin-bottom: 1.2rem; box-shadow: 0 4px 18px rgba(74,33,56,0.18); }}
   .nav-brand {{ display: flex; align-items: center; gap: 0.6rem; }}
-  .nav-logo {{
-      width: 34px; height: 34px; border-radius: 9px; background: {ANA};
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem;
-  }}
-  .nav-title {{ color: #fff; font-weight: 700; font-size: 1.12rem;
-                letter-spacing: 0.2px; }}
+  .nav-logo {{ width: 34px; height: 34px; border-radius: 9px; background: {ANA};
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }}
+  .nav-title {{ color: #fff; font-weight: 700; font-size: 1.12rem; }}
   .nav-sub {{ color: #D9C4CC; font-size: 0.72rem; margin-top: -2px; }}
-  .nav-links {{ display: flex; align-items: center; gap: 1.5rem; }}
+  .nav-links {{ display: flex; align-items: center; gap: 1.4rem; }}
   .nav-links a {{ color: #E8DBE0; text-decoration: none; font-size: 0.86rem;
-                  font-weight: 500; }}
+      font-weight: 500; }}
   .nav-links a:hover {{ color: {ALTIN}; }}
-  .nav-rozet {{
-      background: rgba(255,255,255,0.12); color: #fff; padding: 0.3rem 0.75rem;
-      border-radius: 20px; font-size: 0.74rem; font-weight: 600;
-  }}
+  .nav-rozet {{ background: rgba(255,255,255,0.12); color: #fff;
+      padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.74rem;
+      font-weight: 600; }}
 
-  /* --- HERO --- */
-  .hero {{
-      background: linear-gradient(135deg, {ACIK} 0%, #FBF1EC 55%, #F6E6E9 100%);
-      border-radius: 16px; padding: 1.9rem 2.2rem; margin-bottom: 1.5rem;
-      border: 1px solid #EBDDE2;
-  }}
-  .hero h1 {{ color: {KOYU}; font-size: 2.05rem; margin: 0 0 0.35rem 0;
-              line-height: 1.15; }}
-  .hero p {{ color: #6E6459; font-size: 1.0rem; margin: 0 0 1.0rem 0; }}
+  .hero {{ background: linear-gradient(135deg, {ACIK} 0%, #FBF1EC 55%, #F6E6E9 100%);
+      border-radius: 16px; padding: 1.8rem 2.2rem; margin-bottom: 1.3rem;
+      border: 1px solid #EBDDE2; }}
+  .hero h1 {{ color: {KOYU}; font-size: {BASLIK}; margin: 0 0 0.35rem 0;
+      line-height: 1.15; }}
+  .hero p {{ color: #6E6459; font-size: {YAZI}; margin: 0 0 1rem 0; }}
   .cipler {{ display: flex; gap: 0.6rem; flex-wrap: wrap; }}
-  .cip {{
-      background: #fff; border: 1px solid #E5D5DB; color: {KOYU};
+  .cip {{ background: #fff; border: 1px solid #E5D5DB; color: {KOYU};
       padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.8rem;
-      font-weight: 500;
-  }}
+      font-weight: 500; }}
 
-  /* --- ADIM BASLIKLARI --- */
   .adim {{ display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.7rem; }}
-  .adim-no {{
-      width: 25px; height: 25px; border-radius: 50%; background: {ANA};
+  .adim-no {{ width: 25px; height: 25px; border-radius: 50%; background: {ANA};
       color: #fff; display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 700;
-  }}
+      font-size: 0.8rem; font-weight: 700; }}
   .adim-no.yesil {{ background: {YESIL}; }}
   .adim-yazi {{ color: {KOYU}; font-weight: 700; font-size: 0.95rem;
-                letter-spacing: 0.4px; }}
+      letter-spacing: 0.4px; }}
 
-  /* --- KARTLAR --- */
-  .kart {{
-      background: #fff; border: 1px solid #EADCE1; border-radius: 12px;
-      padding: 1.1rem 1.3rem; margin-bottom: 0.9rem;
-      box-shadow: 0 2px 10px rgba(74,33,56,0.05);
-  }}
+  .kart {{ background: #fff; border: 1px solid #EADCE1; border-radius: 12px;
+      padding: 1.05rem 1.25rem; margin-bottom: 0.85rem;
+      box-shadow: 0 2px 10px rgba(74,33,56,0.05); }}
   .kart-baslik {{ color: {ANA}; font-weight: 700; font-size: 0.9rem;
-                  margin-bottom: 0.5rem; }}
-  .kart p {{ color: #514840; font-size: 0.9rem; line-height: 1.55; margin: 0; }}
+      margin-bottom: 0.5rem; }}
+  .kart p {{ color: #514840; font-size: {YAZI}; line-height: 1.55; margin: 0; }}
 
-  /* --- METRIK KUTULARI --- */
-  .metrik {{
-      background: #fff; border: 1px solid #EADCE1; border-radius: 11px;
-      padding: 0.85rem 1rem; text-align: center;
-  }}
-  .metrik-deger {{ color: {ANA}; font-size: 1.5rem; font-weight: 700;
-                   line-height: 1.1; }}
+  .metrik {{ background: #fff; border: 1px solid #EADCE1; border-radius: 11px;
+      padding: 0.8rem 1rem; text-align: center; }}
+  .metrik-deger {{ color: {ANA}; font-size: 1.45rem; font-weight: 700;
+      line-height: 1.1; }}
   .metrik-etiket {{ color: #8A7A80; font-size: 0.74rem; margin-top: 0.2rem; }}
 
-  /* --- BUTONLAR --- */
-  div.stButton > button {{
-      background: {ANA}; color: #fff; border: none; border-radius: 9px;
-      font-weight: 600; padding: 0.6rem 1rem; transition: all 0.15s;
-  }}
+  div.stButton > button {{ background: {ANA}; color: #fff; border: none;
+      border-radius: 9px; font-weight: 600; padding: 0.55rem 1rem; }}
   div.stButton > button:hover {{ background: {KOYU}; color: #fff; }}
-  div.stDownloadButton > button {{
-      background: #fff; color: {YESIL}; border: 1.5px solid {YESIL};
-      border-radius: 9px; font-weight: 600;
-  }}
+  div.stDownloadButton > button {{ background: #fff; color: {YESIL};
+      border: 1.5px solid {YESIL}; border-radius: 9px; font-weight: 600; }}
 
-  /* --- SEKMELER --- */
-  .stTabs [data-baseweb="tab-list"] {{ gap: 0.35rem; }}
-  .stTabs [data-baseweb="tab"] {{
-      border-radius: 9px 9px 0 0; padding: 0.55rem 1.1rem;
-      font-weight: 600; font-size: 0.9rem;
-  }}
+  .stTabs [data-baseweb="tab-list"] {{ gap: 0.3rem; flex-wrap: wrap; }}
+  .stTabs [data-baseweb="tab"] {{ border-radius: 9px 9px 0 0;
+      padding: 0.5rem 0.9rem; font-weight: 600; font-size: 0.87rem; }}
   .stTabs [aria-selected="true"] {{ background: {ACIK}; color: {KOYU} !important; }}
 
-  /* --- ETIK SERIDI --- */
-  .ifsa {{
-      background: #FBF6F2; border: 1px dashed #DCC9CF; border-radius: 10px;
-      color: #7A6C72; font-size: 0.8rem; text-align: center;
-      padding: 0.6rem; margin-top: 1.6rem;
-  }}
+  .ifsa {{ background: #FBF6F2; border: 1px dashed #DCC9CF; border-radius: 10px;
+      color: #7A6C72; font-size: 0.8rem; text-align: center; padding: 0.6rem;
+      margin-top: 1.5rem; }}
   .altbilgi {{ color: #A0949A; font-size: 0.76rem; text-align: center;
-               margin-top: 0.8rem; }}
+      margin-top: 0.8rem; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -159,26 +159,57 @@ st.markdown(f"""
 
 
 # ---------------------------------------------------------------------------
-# Oturum durumu
+# Yardımcılar
 # ---------------------------------------------------------------------------
-if "sonuc" not in st.session_state:
-    st.session_state.sonuc = None
-if "gecmis" not in st.session_state:
-    st.session_state.gecmis = []
+def adim_basligi(no: str, yazi: str, yesil: bool = False) -> None:
+    sinif = "adim-no yesil" if yesil else "adim-no"
+    st.markdown(f'<div class="adim"><div class="{sinif}">{no}</div>'
+                f'<div class="adim-yazi">{yazi}</div></div>', unsafe_allow_html=True)
+
+
+def metrik_satiri(veriler: list[tuple]) -> None:
+    kolonlar = st.columns(len(veriler))
+    for kol, (deger, etiket) in zip(kolonlar, veriler):
+        kol.markdown(f'<div class="metrik"><div class="metrik-deger">{deger}</div>'
+                     f'<div class="metrik-etiket">{etiket}</div></div>',
+                     unsafe_allow_html=True)
+
+
+def olcumler(ig: str, sh: str, kategori: str) -> tuple:
+    kelimeler = prompts.KATEGORI_KELIMELERI.get(kategori, [])
+    return (uret.seo_kapsami(f"{ig} {sh}", kelimeler), len(kelimeler),
+            uret.klise_sayisi(f"{ig} {sh}"), uret.kanal_benzerligi(ig, sh))
+
+
+ORNEKLER = [
+    ("🧶 Bebek battaniyesi", "Tekstil / El sanatı",
+     "El örgüsü bebek battaniyesi yapıyorum. Organik pamuk ipliği kullanıyorum, "
+     "tamamen elde örüyorum. Bir tanesi yaklaşık üç günümü alıyor. Anneannemden "
+     "öğrendiğim bir desen kullanıyorum."),
+    ("🍅 Domates salçası", "Gıda",
+     "Ev yapımı domates salçası. Kendi bahçemizin domatesi, güneşte kurutuyorum. "
+     "Hiçbir katkı maddesi yok, sadece domates ve tuz. 700 gramlık kavanozlarda "
+     "satıyorum."),
+    ("💍 Gümüş kolye", "Takı / Aksesuar",
+     "Gümüş tel sarma tekniğiyle kolye yapıyorum. 925 ayar gümüş tel kullanıyorum, "
+     "taşları doğal taş. Her kolye tek, aynısından ikinci bir tane olmuyor."),
+]
 
 
 # ---------------------------------------------------------------------------
 # SEKMELER
 # ---------------------------------------------------------------------------
-sekme_uret, sekme_gecmis, sekme_nasil, sekme_etik = st.tabs(
-    ["✍️  İçerik Üret", "📁  Geçmişim", "💡  Nasıl Çalışır", "🛡️  Etik ve Gizlilik"]
-)
+(s_uret, s_karsi, s_ton, s_toplu,
+ s_gecmis, s_panel, s_nasil, s_etik) = st.tabs([
+    "✍️  İçerik Üret", "⚖️  Karşılaştır", "🎙️  Ton Profilim", "📦  Toplu Üretim",
+    "📁  Geçmişim", "📊  Panel", "💡  Nasıl Çalışır", "🛡️  Etik",
+])
 
 
 # ===========================================================================
-# SEKME 1 — İÇERİK ÜRET
+# 1 — İÇERİK ÜRET
 # ===========================================================================
-with sekme_uret:
+with s_uret:
     st.markdown("""
     <div class="hero">
       <h1>Ürününüzü anlatın,<br>gerisini biz yazalım.</h1>
@@ -192,42 +223,39 @@ with sekme_uret:
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("**🎯 Hemen denemek ister misiniz?** Hazır bir örnek seçin:")
+    o1, o2, o3 = st.columns(3)
+    for kol, (etiket, ornek_kat, metin) in zip((o1, o2, o3), ORNEKLER):
+        if kol.button(etiket, use_container_width=True, key=f"ornek_{etiket}"):
+            st.session_state.anlatim_metni = metin
+            st.rerun()
+
+    st.divider()
     sol, sag = st.columns([1, 1], gap="large")
 
-    # ------------------------------------------------------------------ SOL
     with sol:
-        st.markdown('<div class="adim"><div class="adim-no">1</div>'
-                    '<div class="adim-yazi">ÜRÜNÜNÜZÜ ANLATIN</div></div>',
-                    unsafe_allow_html=True)
-
+        adim_basligi("1", "ÜRÜNÜNÜZÜ ANLATIN")
         anlatim = st.text_area(
-            "Anlatım",
-            height=175,
+            "Anlatım", height=175, key="anlatim_metni",
             placeholder="Ne ürettiğinizi, nasıl yaptığınızı ve ne kadar sürdüğünü "
-                        "anlatın.\n\nÖrnek: El örgüsü bebek battaniyesi yapıyorum. "
-                        "Organik pamuk ipliği kullanıyorum, tamamen elde örüyorum. "
-                        "Bir tanesi yaklaşık üç günümü alıyor…",
+                        "anlatın.\n\nÖrnek: El örgüsü bebek battaniyesi yapıyorum…",
             label_visibility="collapsed",
         )
-
         k1, k2 = st.columns(2)
         with k1:
             kategori = st.selectbox("Kategori",
                                     list(prompts.KATEGORI_KELIMELERI.keys()))
         with k2:
-            ton = st.selectbox("Anlatım tonu",
-                               ["sıcak ve samimi", "sade ve bilgilendirici",
-                                "şık ve zarif"])
+            ton = st.selectbox("Anlatım tonu", ["sıcak ve samimi",
+                                                "sade ve bilgilendirici",
+                                                "şık ve zarif"])
 
         with st.expander("⚙️  Gelişmiş ayarlar (rapor / karşılaştırma için)"):
             teknik = st.radio(
-                "Prompt tekniği",
-                ["few_shot", "zero_shot", "chain_of_thought"],
+                "Prompt tekniği", ["few_shot", "zero_shot", "chain_of_thought"],
                 captions=["Örneklerle — varsayılan, en iyi sonuç",
                           "Örneksiz — karşılaştırma tabanı (baseline)",
-                          "Adım adım düşündürerek"],
-            )
-            st.caption(f"Kullanılan model: `{uret.MODEL}`")
+                          "Adım adım düşündürerek"])
 
         if st.button("✦   İçerik Üret", use_container_width=True, type="primary"):
             if not anlatim.strip():
@@ -237,26 +265,21 @@ with sekme_uret:
             else:
                 with st.spinner("İçeriğiniz hazırlanıyor…"):
                     try:
-                        sonuc = uret.icerik_uret(anlatim=anlatim, kategori=kategori,
-                                                 ton=ton, teknik=teknik)
+                        sonuc = uret.icerik_uret(
+                            anlatim=anlatim, kategori=kategori, ton=ton,
+                            teknik=teknik,
+                            uslup_ornekleri=st.session_state.uslup_ornekleri or None)
                         st.session_state.sonuc = sonuc
                         st.session_state.gecmis.insert(0, {
                             "saat": datetime.now().strftime("%H:%M"),
-                            "kategori": kategori,
-                            "anlatim": anlatim,
-                            "instagram": sonuc.instagram,
-                            "shopier": sonuc.shopier,
-                        })
+                            "kategori": kategori, "anlatim": anlatim,
+                            "instagram": sonuc.instagram, "shopier": sonuc.shopier})
                     except Exception as hata:
                         st.session_state.sonuc = None
                         st.error(f"İçerik üretilemedi: {hata}")
 
-    # ------------------------------------------------------------------ SAĞ
     with sag:
-        st.markdown('<div class="adim"><div class="adim-no yesil">2</div>'
-                    '<div class="adim-yazi">DÜZENLEYİN VE ONAYLAYIN</div></div>',
-                    unsafe_allow_html=True)
-
+        adim_basligi("2", "DÜZENLEYİN VE ONAYLAYIN", yesil=True)
         sonuc = st.session_state.sonuc
 
         if sonuc is None:
@@ -264,21 +287,18 @@ with sekme_uret:
             <div class="kart">
               <div class="kart-baslik">Henüz içerik üretilmedi</div>
               <p>Soldaki kutuya ürününüzü anlatıp <b>İçerik Üret</b> düğmesine basın.
-              Size iki ayrı metin hazırlayacağız:</p>
-              <br>
+              Size iki ayrı metin hazırlayacağız:</p><br>
               <p>📱 <b>Instagram gönderisi</b> — kısa, dikkat çeken, hikâyenizi anlatan<br>
               🛍️ <b>Shopier açıklaması</b> — aranınca bulunan, bilgi veren</p>
-            </div>
-            """, unsafe_allow_html=True)
+            </div>""", unsafe_allow_html=True)
         else:
             st.markdown('<div class="kart-baslik">📱 Instagram gönderisi</div>',
                         unsafe_allow_html=True)
             ig = st.text_area("Instagram", value=sonuc.instagram, height=140,
                               label_visibility="collapsed")
-
             st.markdown('<div class="kart-baslik">🛍️ Shopier ürün açıklaması</div>',
                         unsafe_allow_html=True)
-            sh = st.text_area("Shopier", value=sonuc.shopier, height=165,
+            sh = st.text_area("Shopier", value=sonuc.shopier, height=160,
                               label_visibility="collapsed")
 
             b1, b2 = st.columns(2)
@@ -292,149 +312,371 @@ with sekme_uret:
                                    use_container_width=True)
 
             with st.expander("📋  Kopyalamak için tıklayın"):
-                st.caption("Instagram gönderisi")
-                st.code(ig, language=None)
-                st.caption("Shopier açıklaması")
-                st.code(sh, language=None)
+                st.caption("Instagram gönderisi"); st.code(ig, language=None)
+                st.caption("Shopier açıklaması"); st.code(sh, language=None)
 
-            # --- Ölçümler ---
-            kelimeler = prompts.KATEGORI_KELIMELERI.get(kategori, [])
-            kapsam = uret.seo_kapsami(f"{ig} {sh}", kelimeler)
-            klise = uret.klise_sayisi(f"{ig} {sh}")
-            benzerlik = uret.kanal_benzerligi(ig, sh)
-
+            kapsam, toplam, klise, benzerlik = olcumler(ig, sh, kategori)
             st.markdown("<br>", unsafe_allow_html=True)
-            m1, m2, m3 = st.columns(3)
-            for kol, deger, etiket in [
-                (m1, f"{kapsam}/{len(kelimeler)}", "SEO anahtar kelime"),
-                (m2, str(klise), "klişe ifade"),
-                (m3, f"{benzerlik:.2f}", "kanal benzerliği"),
-            ]:
-                kol.markdown(f'<div class="metrik"><div class="metrik-deger">{deger}'
-                             f'</div><div class="metrik-etiket">{etiket}</div></div>',
-                             unsafe_allow_html=True)
+            metrik_satiri([(f"{kapsam}/{toplam}", "SEO anahtar kelime"),
+                           (str(klise), "klişe ifade"),
+                           (f"{benzerlik:.2f}", "kanal benzerliği")])
 
     st.markdown('<div class="ifsa">Bu içerik yapay zekâ ile üretilmiştir · '
-                'yayınlamadan önce okuyup düzenleyin — son karar her zaman sizindir</div>',
+                'yayınlamadan önce okuyup düzenleyin — son karar her zaman sizindir'
+                '</div>', unsafe_allow_html=True)
+
+
+# ===========================================================================
+# 2 — KARŞILAŞTIR
+# ===========================================================================
+with s_karsi:
+    st.markdown("### ⚖️ Prompt tekniklerini karşılaştırın")
+    st.write("Aynı anlatım, üç farklı yöntemle işlenir. Hangi yaklaşımın daha iyi "
+             "sonuç verdiğini yan yana görebilirsiniz — bu karşılaştırma proje "
+             "raporundaki *prompt tasarımı* bölümünün kanıtıdır.")
+
+    k_anlatim = st.text_area(
+        "Karşılaştırılacak anlatım", height=110,
+        value=ORNEKLER[0][2],
+        help="Üç teknik de bu metin üzerinde çalıştırılacak.")
+    kk1, kk2 = st.columns([1, 2])
+    with kk1:
+        k_kategori = st.selectbox("Kategori", list(prompts.KATEGORI_KELIMELERI.keys()),
+                                  key="karsi_kat")
+
+    if st.button("⚖️  Üç tekniği de çalıştır", type="primary"):
+        if len(k_anlatim.split()) < 5:
+            st.warning("Karşılaştırma için biraz daha uzun bir anlatım girin.")
+        else:
+            sonuclar = {}
+            ilerleme = st.progress(0.0, text="Başlıyor…")
+            for i, tkn in enumerate(["zero_shot", "few_shot", "chain_of_thought"], 1):
+                ilerleme.progress(i / 3, text=f"{tkn} çalışıyor… ({i}/3)")
+                try:
+                    sonuclar[tkn] = uret.icerik_uret(
+                        anlatim=k_anlatim, kategori=k_kategori, teknik=tkn,
+                        uslup_ornekleri=st.session_state.uslup_ornekleri or None)
+                except Exception as e:
+                    sonuclar[tkn] = e
+            ilerheme_bitti = ilerleme.empty()
+            st.session_state.karsilastirma = (sonuclar, k_kategori)
+
+    if st.session_state.karsilastirma:
+        sonuclar, k_kat = st.session_state.karsilastirma
+        basliklar = {"zero_shot": "Zero-shot (baseline)",
+                     "few_shot": "Few-shot (örneklerle)",
+                     "chain_of_thought": "Chain-of-thought"}
+        kolonlar = st.columns(3, gap="medium")
+        for kol, (tkn, sonuc) in zip(kolonlar, sonuclar.items()):
+            with kol:
+                st.markdown(f'<div class="kart-baslik">{basliklar[tkn]}</div>',
+                            unsafe_allow_html=True)
+                if isinstance(sonuc, Exception):
+                    st.error(f"Hata: {sonuc}")
+                    continue
+                st.markdown("**📱 Instagram**"); st.write(sonuc.instagram)
+                st.markdown("**🛍️ Shopier**"); st.write(sonuc.shopier)
+                kapsam, toplam, klise, benzerlik = olcumler(
+                    sonuc.instagram, sonuc.shopier, k_kat)
+                st.caption(f"SEO {kapsam}/{toplam} · klişe {klise} · "
+                           f"benzerlik {benzerlik:.2f}")
+
+        basarililar = {t: s for t, s in sonuclar.items()
+                       if not isinstance(s, Exception)}
+        if len(basarililar) > 1:
+            st.divider()
+            st.markdown("#### 📈 Özet karşılaştırma")
+            satirlar = []
+            for tkn, sonuc in basarililar.items():
+                kapsam, toplam, klise, benzerlik = olcumler(
+                    sonuc.instagram, sonuc.shopier, k_kat)
+                satirlar.append({
+                    "Teknik": basliklar[tkn],
+                    "SEO kapsamı": f"{kapsam}/{toplam}",
+                    "Klişe (az iyi)": klise,
+                    "Kanal benzerliği (az iyi)": round(benzerlik, 2),
+                    "Instagram (kelime)": len(sonuc.instagram.split()),
+                    "Shopier (kelime)": len(sonuc.shopier.split())})
+            st.dataframe(satirlar, use_container_width=True, hide_index=True)
+
+
+# ===========================================================================
+# 3 — TON PROFİLİM
+# ===========================================================================
+with s_ton:
+    st.markdown("### 🎙️ Kendi üslubunuzu öğretin")
+    st.write("Daha önce yazdığınız paylaşımlardan birkaçını buraya yapıştırın. "
+             "Yapay zekâ bunları okuyup **sizin gibi yazmayı** öğrenir — cümle "
+             "uzunluğunuzu, samimiyetinizi ve kelime tercihlerinizi taklit eder. "
+             "İçerikleriniz kopyalanmaz, yalnızca üslubunuz örnek alınır.")
+
+    with st.form("ton_formu"):
+        st.markdown("**Kendi yazdığınız metinler** (en az bir tane)")
+        y1 = st.text_area("Örnek 1", height=80,
+                          placeholder="Örn: Bugün de tezgah başındayım, sabahtan "
+                                      "beri örüyorum. Bu rengi çok sevdim…")
+        y2 = st.text_area("Örnek 2 (isteğe bağlı)", height=80)
+        y3 = st.text_area("Örnek 3 (isteğe bağlı)", height=80)
+        kaydet = st.form_submit_button("🎙️  Ton profilimi kaydet", type="primary")
+
+    if kaydet:
+        yeni = [m for m in (y1, y2, y3) if m and m.strip()]
+        if not yeni:
+            st.warning("En az bir metin yapıştırın.")
+        else:
+            st.session_state.uslup_ornekleri = yeni
+            st.success(f"Ton profiliniz kaydedildi ({len(yeni)} örnek). "
+                       "Bundan sonraki tüm içerikler sizin üslubunuzla yazılacak.")
+
+    if st.session_state.uslup_ornekleri:
+        st.divider()
+        st.markdown("#### ✅ Aktif ton profiliniz")
+        for i, ornek in enumerate(st.session_state.uslup_ornekleri, 1):
+            st.markdown(f'<div class="kart"><div class="kart-baslik">Örnek {i}</div>'
+                        f'<p>{ornek}</p></div>', unsafe_allow_html=True)
+        if st.button("🗑  Ton profilini sil"):
+            st.session_state.uslup_ornekleri = []
+            st.rerun()
+    else:
+        st.info("Şu an ton profiliniz yok — varsayılan örnekler kullanılıyor. "
+                "Kendi metinlerinizi eklerseniz sonuçlar size çok daha çok benzer.")
+
+
+# ===========================================================================
+# 4 — TOPLU ÜRETİM
+# ===========================================================================
+with s_toplu:
+    st.markdown("### 📦 Birden fazla ürün için tek seferde içerik")
+    st.write("Çok ürününüz varsa hepsini tek tek yazmanıza gerek yok. "
+             "Ürün anlatımlarınızı içeren bir **CSV dosyası** yükleyin, "
+             "tümü için içerik üretelim.")
+
+    st.markdown('<div class="kart"><div class="kart-baslik">📄 Dosya biçimi</div>'
+                '<p>CSV dosyanızda <b>anlatim</b> sütunu bulunmalı. İsteğe bağlı '
+                'olarak <b>kategori</b> sütunu da ekleyebilirsiniz.</p></div>',
                 unsafe_allow_html=True)
 
+    ornek_csv = "anlatim,kategori\nEl örgüsü bebek battaniyesi yapıyorum…,Tekstil / El sanatı\n"
+    st.download_button("⬇  Örnek CSV şablonunu indir", data=ornek_csv,
+                       file_name="ornek_sablon.csv")
+
+    yuklenen = st.file_uploader("CSV dosyanızı seçin", type=["csv"])
+    t_kategori = st.selectbox("Varsayılan kategori (dosyada yoksa kullanılır)",
+                              list(prompts.KATEGORI_KELIMELERI.keys()),
+                              key="toplu_kat")
+
+    if yuklenen is not None:
+        try:
+            icerik = yuklenen.getvalue().decode("utf-8-sig")
+            satirlar = list(csv.DictReader(io.StringIO(icerik)))
+        except Exception as e:
+            satirlar = []
+            st.error(f"Dosya okunamadı: {e}")
+
+        if satirlar and "anlatim" not in satirlar[0]:
+            st.error("CSV dosyasında **anlatim** sütunu bulunamadı.")
+        elif satirlar:
+            st.success(f"{len(satirlar)} ürün bulundu.")
+            if st.button(f"📦  {len(satirlar)} ürün için içerik üret", type="primary"):
+                cikti, ilerleme = [], st.progress(0.0, text="Başlıyor…")
+                for i, satir in enumerate(satirlar, 1):
+                    ilerleme.progress(i / len(satirlar),
+                                      text=f"{i}/{len(satirlar)} üretiliyor…")
+                    kat = satir.get("kategori") or t_kategori
+                    try:
+                        s = uret.icerik_uret(
+                            anlatim=satir["anlatim"], kategori=kat,
+                            uslup_ornekleri=st.session_state.uslup_ornekleri or None)
+                        cikti.append({"anlatim": satir["anlatim"], "kategori": kat,
+                                      "instagram": s.instagram, "shopier": s.shopier,
+                                      "durum": "✅"})
+                    except Exception as e:
+                        cikti.append({"anlatim": satir["anlatim"], "kategori": kat,
+                                      "instagram": "", "shopier": "",
+                                      "durum": f"⚠️ {str(e)[:60]}"})
+                ilerleme.empty()
+                st.session_state.toplu_sonuc = cikti
+
+    if st.session_state.toplu_sonuc:
+        st.divider()
+        basarili = sum(1 for s in st.session_state.toplu_sonuc if s["durum"] == "✅")
+        st.markdown(f"#### Sonuçlar — {basarili}/{len(st.session_state.toplu_sonuc)} başarılı")
+        st.dataframe(st.session_state.toplu_sonuc, use_container_width=True,
+                     hide_index=True)
+
+        tampon = io.StringIO()
+        yazici = csv.DictWriter(tampon, fieldnames=list(
+            st.session_state.toplu_sonuc[0].keys()))
+        yazici.writeheader(); yazici.writerows(st.session_state.toplu_sonuc)
+        st.download_button("⬇  Sonuçları CSV olarak indir", data=tampon.getvalue(),
+                           file_name="uretken_kadin_toplu.csv")
+
 
 # ===========================================================================
-# SEKME 2 — GEÇMİŞİM
+# 5 — GEÇMİŞİM
 # ===========================================================================
-with sekme_gecmis:
+with s_gecmis:
     st.markdown("### 📁 Bu oturumda ürettikleriniz")
-
     if not st.session_state.gecmis:
         st.info("Henüz içerik üretmediniz. **İçerik Üret** sekmesinden başlayın.")
     else:
         st.caption(f"Toplam {len(st.session_state.gecmis)} içerik üretildi. "
                    "(Sayfayı yenilerseniz bu liste sıfırlanır.)")
-        for i, kayit in enumerate(st.session_state.gecmis):
+        for kayit in st.session_state.gecmis:
             baslik = kayit["anlatim"][:65].replace("\n", " ")
             with st.expander(f"{kayit['saat']}  ·  {kayit['kategori']}  ·  {baslik}…"):
-                st.markdown("**Anlatımınız**")
-                st.write(kayit["anlatim"])
+                st.markdown("**Anlatımınız**"); st.write(kayit["anlatim"])
                 g1, g2 = st.columns(2)
-                with g1:
-                    st.markdown("**📱 Instagram**")
-                    st.write(kayit["instagram"])
-                with g2:
-                    st.markdown("**🛍️ Shopier**")
-                    st.write(kayit["shopier"])
-
+                g1.markdown("**📱 Instagram**"); g1.write(kayit["instagram"])
+                g2.markdown("**🛍️ Shopier**"); g2.write(kayit["shopier"])
         if st.button("🗑  Geçmişi temizle"):
             st.session_state.gecmis = []
             st.rerun()
 
 
 # ===========================================================================
-# SEKME 3 — NASIL ÇALIŞIR
+# 6 — PANEL
 # ===========================================================================
-with sekme_nasil:
+with s_panel:
+    st.markdown("### 📊 Test sonuçları paneli")
+    st.write("`ciktilar/` klasöründeki toplu test sonuçları — projenin ölçülebilir "
+             "kanıtı. Her çalıştırma ayrı bir dosyaya kaydedilir.")
+
+    dosyalar = sorted(glob.glob(os.path.join(KOK, "ciktilar", "*.csv")), reverse=True)
+    if not dosyalar:
+        st.info("Henüz toplu test çalıştırılmamış.\n\n"
+                "Terminalden `python src/toplu_test.py` komutuyla çalıştırabilirsiniz.")
+    else:
+        secilen = st.selectbox("Sonuç dosyası",
+                               [os.path.basename(d) for d in dosyalar])
+        yol = os.path.join(KOK, "ciktilar", secilen)
+        with open(yol, encoding="utf-8-sig") as f:
+            satirlar = list(csv.DictReader(f))
+        basarili = [s for s in satirlar if not s.get("hata")]
+
+        if not basarili:
+            st.warning("Bu dosyada başarılı sonuç yok.")
+        else:
+            sayi = lambda k: [float(s.get(k) or 0) for s in basarili]
+            ort = lambda k: sum(sayi(k)) / len(basarili)
+            metrik_satiri([
+                (f"{len(basarili)}/{len(satirlar)}", "başarılı üretim"),
+                (f"%{100 * sum(sayi('seo_kapsam')) / max(sum(sayi('seo_toplam')), 1):.0f}",
+                 "SEO kapsamı"),
+                (f"{sum(sayi('klise')):.0f}", "toplam klişe"),
+                (f"{ort('benzerlik'):.2f}", "ort. kanal benzerliği"),
+            ])
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            p1, p2 = st.columns(2, gap="medium")
+            with p1:
+                st.markdown("**Kategoriye göre SEO kapsamı**")
+                kategoriler = {}
+                for s in basarili:
+                    kategoriler.setdefault(s["kategori"], []).append(
+                        float(s["seo_kapsam"]) / max(float(s["seo_toplam"]), 1))
+                st.bar_chart({k: sum(v) / len(v) for k, v in kategoriler.items()},
+                             height=260, color=ANA)
+            with p2:
+                st.markdown("**Ortalama metin uzunluğu (kelime)**")
+                st.bar_chart({"Instagram": ort("ig_kelime"),
+                              "Shopier": ort("sh_kelime")}, height=260, color=YESIL)
+
+            with st.expander("📄  Ham veriyi göster"):
+                st.dataframe(satirlar, use_container_width=True, hide_index=True)
+
+
+# ===========================================================================
+# 7 — NASIL ÇALIŞIR
+# ===========================================================================
+with s_nasil:
     st.markdown("### 💡 Üç adımda içeriğiniz hazır")
     st.write("")
-
     a1, a2, a3 = st.columns(3, gap="medium")
-    adimlar = [
+    for kol, no, baslik, aciklama in [
         (a1, "1", "Siz anlatın",
-         "Ürününüzü kendi cümlelerinizle yazın. Teknik bilgi, pazarlama dili "
-         "ya da özel bir yazım biçimi gerekmez — nasıl konuşuyorsanız öyle yazın."),
+         "Ürününüzü kendi cümlelerinizle yazın. Teknik bilgi, pazarlama dili ya da "
+         "özel bir yazım biçimi gerekmez — nasıl konuşuyorsanız öyle yazın."),
         (a2, "2", "Yapay zekâ düzenlesin",
-         "Anlatımınız, iki farklı kanala uygun metne dönüştürülür. Instagram "
-         "için kısa ve dikkat çekici, Shopier için aranınca bulunan bir metin."),
+         "Anlatımınız iki farklı kanala uygun metne dönüştürülür: Instagram için "
+         "kısa ve dikkat çekici, Shopier için aranınca bulunan bir metin."),
         (a3, "3", "Siz onaylayın",
-         "Metinleri okur, beğenmediğiniz yeri değiştirir ve onaylarsınız. "
-         "Sizin onayınız olmadan hiçbir içerik kullanılmaz."),
-    ]
-    for kol, no, baslik, aciklama in adimlar:
+         "Metinleri okur, beğenmediğiniz yeri değiştirir ve onaylarsınız. Sizin "
+         "onayınız olmadan hiçbir içerik kullanılmaz."),
+    ]:
         kol.markdown(f"""
         <div class="kart" style="min-height: 215px;">
           <div class="adim"><div class="adim-no">{no}</div>
           <div class="adim-yazi">{baslik.upper()}</div></div>
           <p>{aciklama}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
     st.write("")
     st.markdown("#### Neden iki ayrı metin?")
     n1, n2 = st.columns(2, gap="medium")
     n1.markdown("""
-    <div class="kart">
-      <div class="kart-baslik">📱 Instagram gönderisi</div>
+    <div class="kart"><div class="kart-baslik">📱 Instagram gönderisi</div>
       <p><b>Amacı:</b> kaydırırken durdurmak.<br><br>
-      Kısa cümleler, sizin sesiniz ve ürününüzün en ilginç detayıyla başlayan
-      bir açılış. Malzeme listesi burada yer almaz.</p>
-    </div>
-    """, unsafe_allow_html=True)
+      Kısa cümleler, sizin sesiniz ve ürününüzün en ilginç detayıyla başlayan bir
+      açılış. Malzeme listesi burada yer almaz.</p></div>""", unsafe_allow_html=True)
     n2.markdown("""
-    <div class="kart">
-      <div class="kart-baslik">🛍️ Shopier ürün açıklaması</div>
+    <div class="kart"><div class="kart-baslik">🛍️ Shopier ürün açıklaması</div>
       <p><b>Amacı:</b> arayan kişinin bulması.<br><br>
-      Ürünün adı, malzemesi, süresi ve kime uygun olduğu açıkça yazılır.
-      İnsanların aramada kullandığı kelimeler doğal biçimde geçer.</p>
-    </div>
-    """, unsafe_allow_html=True)
+      Ürünün adı, malzemesi, süresi ve kime uygun olduğu açıkça yazılır. İnsanların
+      aramada kullandığı kelimeler doğal biçimde geçer.</p></div>""",
+                unsafe_allow_html=True)
+
+    st.write("")
+    st.markdown("#### Diğer özellikler")
+    d1, d2, d3 = st.columns(3, gap="medium")
+    for kol, ikon, ad, aciklama in [
+        (d1, "🎙️", "Ton Profilim",
+         "Eski paylaşımlarınızı yapıştırın, yapay zekâ sizin gibi yazmayı öğrensin."),
+        (d2, "📦", "Toplu Üretim",
+         "CSV yükleyin, tüm ürünleriniz için tek seferde içerik alın."),
+        (d3, "⚖️", "Karşılaştır",
+         "Üç farklı yöntemi yan yana deneyip en iyisini seçin."),
+    ]:
+        kol.markdown(f'<div class="kart" style="min-height:120px;">'
+                     f'<div class="kart-baslik">{ikon}  {ad}</div>'
+                     f'<p>{aciklama}</p></div>', unsafe_allow_html=True)
 
 
 # ===========================================================================
-# SEKME 4 — ETİK VE GİZLİLİK
+# 8 — ETİK
 # ===========================================================================
-with sekme_etik:
+with s_etik:
     st.markdown("### 🛡️ Güçlendiriyoruz, sömürmüyoruz")
-    st.write("Yapay zekâyı burada bir *yazar* olarak değil, sizin sesinizi "
-             "görünür kılan bir *araç* olarak kullanıyoruz.")
+    st.write("Yapay zekâyı burada bir *yazar* olarak değil, sizin sesinizi görünür "
+             "kılan bir *araç* olarak kullanıyoruz.")
     st.write("")
 
     ilkeler = [
         ("🔍", "Şeffaflık",
          "Her içerikte yapay zekâ ile üretildiği açıkça belirtilir. Bunu gizlemeyiz."),
         ("🎙️", "Otantiklik",
-         "Sizin anlatımınız temel alınır. Yapay zekâ hikâye uydurmaz, "
-         "kullandığınız somut kelimeleri korur."),
+         "Sizin anlatımınız temel alınır. Yapay zekâ hikâye uydurmaz, kullandığınız "
+         "somut kelimeleri korur."),
         ("⚖️", "Abartısızlık",
-         "“Mucize”, “garanti”, “en iyi” gibi ispatsız iddialar üretilmez. "
-         "Gıda ürünlerinde sağlık iddiası kurulmaz."),
+         "“Mucize”, “garanti”, “en iyi” gibi ispatsız iddialar üretilmez. Gıda "
+         "ürünlerinde sağlık iddiası kurulmaz."),
         ("✋", "İnsan onayı",
          "Hiçbir içerik sizin onayınız olmadan kullanılmaz. Son karar her zaman "
          "üreticidedir (human-in-the-loop)."),
         ("🔒", "Veri gizliliği",
-         "Anlatımınız yalnızca içerik üretmek için kullanılır. KVKK kapsamında "
-         "açık rıza olmadan saklanmaz veya paylaşılmaz."),
+         "Anlatımınız yalnızca içerik üretmek için kullanılır. KVKK kapsamında açık "
+         "rıza olmadan saklanmaz veya paylaşılmaz."),
         ("🌱", "Önyargı kontrolü",
-         "Üretilen metinler klişe ve kalıplaşmış dil açısından ölçülür; "
-         "tek tip anlatım dayatılmaz."),
+         "Üretilen metinler klişe ve kalıplaşmış dil açısından ölçülür; tek tip "
+         "anlatım dayatılmaz."),
     ]
     for i in range(0, len(ilkeler), 2):
         kol1, kol2 = st.columns(2, gap="medium")
         for kol, (ikon, baslik, aciklama) in zip((kol1, kol2), ilkeler[i:i + 2]):
-            kol.markdown(f"""
-            <div class="kart" style="min-height: 128px;">
-              <div class="kart-baslik">{ikon}  {baslik}</div>
-              <p>{aciklama}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            kol.markdown(f'<div class="kart" style="min-height:128px;">'
+                         f'<div class="kart-baslik">{ikon}  {baslik}</div>'
+                         f'<p>{aciklama}</p></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="altbilgi">Üretken Kadın · Samsung Innovation Campus '
-                'Generative AI Capstone · Tuğçe Deniz & Barış Aslan</div>',
+                'Generative AI Capstone · Tuğçe Deniz &amp; Barış Aslan</div>',
                 unsafe_allow_html=True)

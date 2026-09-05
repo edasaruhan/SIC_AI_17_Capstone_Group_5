@@ -58,12 +58,15 @@ def icerik_uret(anlatim: str,
                 ton: str = "sıcak ve samimi",
                 teknik: str = "few_shot",
                 anahtar_kelimeler: list[str] | None = None,
+                uslup_ornekleri: list[str] | None = None,
                 client: genai.Client | None = None) -> Icerik:
     """
     Üreticinin anlatımından pazarlama içeriği üretir.
 
-    teknik: "zero_shot" | "few_shot" | "chain_of_thought"
-            (rapordaki prompt karşılaştırması için üçü de kullanılabilir)
+    teknik           : "zero_shot" | "few_shot" | "chain_of_thought"
+                       (rapordaki prompt karşılaştırması için üçü de kullanılabilir)
+    uslup_ornekleri  : üreticinin kendi yazdığı metinler — verilirse model bu
+                       üslubu taklit eder ("Ton Profilim" özelliği)
     """
     if not anlatim or not anlatim.strip():
         raise ValueError("Anlatım boş olamaz.")
@@ -81,7 +84,8 @@ def icerik_uret(anlatim: str,
         raise ValueError(f"Bilinmeyen teknik: {teknik}")
 
     prompt = prompt_uret(anlatim=anlatim, kategori=kategori, ton=ton,
-                         anahtar_kelimeler=anahtar_kelimeler)
+                         anahtar_kelimeler=anahtar_kelimeler,
+                         uslup_ornekleri=uslup_ornekleri)
 
     client = client or istemci_olustur()
     yanit = client.models.generate_content(model=MODEL, contents=prompt)
