@@ -37,6 +37,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 varsayilanlar = {
     "sonuc": None, "gecmis": [], "anlatim_metni": "",
     "uslup_ornekleri": [], "karsilastirma": None, "toplu_sonuc": None,
+    "reels": None, "foto": None,
 }
 for anahtar, deger in varsayilanlar.items():
     st.session_state.setdefault(anahtar, deger)
@@ -50,17 +51,32 @@ with st.sidebar:
     buyuk_yazi = st.toggle("♿ Büyük yazı modu", value=False,
                            help="Metinleri büyütür — okuması zor gelenler için.")
     st.divider()
-    st.markdown("**Model**")
-    st.code(uret.MODEL, language=None)
-    if st.session_state.uslup_ornekleri:
-        st.success(f"🎙️ Ton profili aktif ({len(st.session_state.uslup_ornekleri)} örnek)")
-    else:
-        st.info("Ton profili tanımlı değil.\n\n*Ton Profilim* sekmesinden ekleyin.")
-    st.divider()
-    st.caption("Üretken Kadın · Samsung Innovation Campus\nGenerative AI Capstone")
 
-YAZI = "1.06rem" if buyuk_yazi else "0.9rem"
-BASLIK = "2.4rem" if buyuk_yazi else "2.05rem"
+    st.markdown("**🎙️ Ton profiliniz**")
+    if st.session_state.uslup_ornekleri:
+        st.success(f"Aktif — {len(st.session_state.uslup_ornekleri)} örnek "
+                   "kullanılıyor. İçerikleriniz sizin üslubunuzla yazılıyor.")
+    else:
+        st.info("Henüz tanımlamadınız.\n\n*Ton Profilim* sekmesinden kendi "
+                "metinlerinizi ekleyin — sonuçlar size çok daha çok benzesin.")
+
+    st.divider()
+    st.markdown("**📈 Bu oturum**")
+    st.metric("Üretilen içerik", len(st.session_state.gecmis))
+    if st.session_state.gecmis:
+        kategoriler_sayac = {}
+        for kayit in st.session_state.gecmis:
+            kategoriler_sayac[kayit["kategori"]] = \
+                kategoriler_sayac.get(kayit["kategori"], 0) + 1
+        en_cok = max(kategoriler_sayac, key=kategoriler_sayac.get)
+        st.caption(f"En çok: {en_cok}")
+
+    st.divider()
+    st.caption("Yayınlamadan önce metinleri mutlaka okuyun — "
+               "son karar her zaman sizindir.")
+
+YAZI = "1.2rem" if buyuk_yazi else "0.98rem"
+BASLIK = "2.7rem" if buyuk_yazi else "2.2rem"
 
 st.markdown(f"""
 <style>
@@ -76,10 +92,10 @@ st.markdown(f"""
   .nav-brand {{ display: flex; align-items: center; gap: 0.6rem; }}
   .nav-logo {{ width: 34px; height: 34px; border-radius: 9px; background: {ANA};
       display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }}
-  .nav-title {{ color: #fff; font-weight: 700; font-size: 1.12rem; }}
-  .nav-sub {{ color: #D9C4CC; font-size: 0.72rem; margin-top: -2px; }}
+  .nav-title {{ color: #fff; font-weight: 700; font-size: 1.2rem; }}
+  .nav-sub {{ color: #D9C4CC; font-size: 0.78rem; margin-top: -2px; }}
   .nav-links {{ display: flex; align-items: center; gap: 1.4rem; }}
-  .nav-links a {{ color: #E8DBE0; text-decoration: none; font-size: 0.86rem;
+  .nav-links a {{ color: #E8DBE0; text-decoration: none; font-size: 0.92rem;
       font-weight: 500; }}
   .nav-links a:hover {{ color: {ALTIN}; }}
   .nav-rozet {{ background: rgba(255,255,255,0.12); color: #fff;
@@ -94,7 +110,7 @@ st.markdown(f"""
   .hero p {{ color: #6E6459; font-size: {YAZI}; margin: 0 0 1rem 0; }}
   .cipler {{ display: flex; gap: 0.6rem; flex-wrap: wrap; }}
   .cip {{ background: #fff; border: 1px solid #E5D5DB; color: {KOYU};
-      padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.8rem;
+      padding: 0.4rem 0.95rem; border-radius: 20px; font-size: 0.88rem;
       font-weight: 500; }}
 
   .adim {{ display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.7rem; }}
@@ -102,37 +118,38 @@ st.markdown(f"""
       color: #fff; display: flex; align-items: center; justify-content: center;
       font-size: 0.8rem; font-weight: 700; }}
   .adim-no.yesil {{ background: {YESIL}; }}
-  .adim-yazi {{ color: {KOYU}; font-weight: 700; font-size: 0.95rem;
+  .adim-yazi {{ color: {KOYU}; font-weight: 700; font-size: 1.02rem;
       letter-spacing: 0.4px; }}
 
   .kart {{ background: #fff; border: 1px solid #EADCE1; border-radius: 12px;
       padding: 1.05rem 1.25rem; margin-bottom: 0.85rem;
       box-shadow: 0 2px 10px rgba(74,33,56,0.05); }}
-  .kart-baslik {{ color: {ANA}; font-weight: 700; font-size: 0.9rem;
+  .kart-baslik {{ color: {ANA}; font-weight: 700; font-size: 0.98rem;
       margin-bottom: 0.5rem; }}
   .kart p {{ color: #514840; font-size: {YAZI}; line-height: 1.55; margin: 0; }}
 
   .metrik {{ background: #fff; border: 1px solid #EADCE1; border-radius: 11px;
       padding: 0.8rem 1rem; text-align: center; }}
-  .metrik-deger {{ color: {ANA}; font-size: 1.45rem; font-weight: 700;
+  .metrik-deger {{ color: {ANA}; font-size: 1.6rem; font-weight: 700;
       line-height: 1.1; }}
-  .metrik-etiket {{ color: #8A7A80; font-size: 0.74rem; margin-top: 0.2rem; }}
+  .metrik-etiket {{ color: #8A7A80; font-size: 0.82rem; margin-top: 0.25rem; }}
 
   div.stButton > button {{ background: {ANA}; color: #fff; border: none;
-      border-radius: 9px; font-weight: 600; padding: 0.55rem 1rem; }}
+      border-radius: 9px; font-weight: 600; padding: 0.6rem 1rem;
+      font-size: 0.98rem; }}
   div.stButton > button:hover {{ background: {KOYU}; color: #fff; }}
   div.stDownloadButton > button {{ background: #fff; color: {YESIL};
       border: 1.5px solid {YESIL}; border-radius: 9px; font-weight: 600; }}
 
   .stTabs [data-baseweb="tab-list"] {{ gap: 0.3rem; flex-wrap: wrap; }}
   .stTabs [data-baseweb="tab"] {{ border-radius: 9px 9px 0 0;
-      padding: 0.5rem 0.9rem; font-weight: 600; font-size: 0.87rem; }}
+      padding: 0.55rem 1rem; font-weight: 600; font-size: 0.94rem; }}
   .stTabs [aria-selected="true"] {{ background: {ACIK}; color: {KOYU} !important; }}
 
   .ifsa {{ background: #FBF6F2; border: 1px dashed #DCC9CF; border-radius: 10px;
-      color: #7A6C72; font-size: 0.8rem; text-align: center; padding: 0.6rem;
+      color: #7A6C72; font-size: 0.88rem; text-align: center; padding: 0.7rem;
       margin-top: 1.5rem; }}
-  .altbilgi {{ color: #A0949A; font-size: 0.76rem; text-align: center;
+  .altbilgi {{ color: #A0949A; font-size: 0.84rem; text-align: center;
       margin-top: 0.8rem; }}
 </style>
 """, unsafe_allow_html=True)
@@ -152,7 +169,6 @@ st.markdown(f"""
   </div>
   <div class="nav-links">
     <a href="https://github.com/Tugce-hub/Uretken_Kadin" target="_blank">GitHub</a>
-    <span class="nav-rozet">Samsung Innovation Campus</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -235,12 +251,36 @@ with s_uret:
 
     with sol:
         adim_basligi("1", "ÜRÜNÜNÜZÜ ANLATIN")
-        anlatim = st.text_area(
-            "Anlatım", height=175, key="anlatim_metni",
-            placeholder="Ne ürettiğinizi, nasıl yaptığınızı ve ne kadar sürdüğünü "
-                        "anlatın.\n\nÖrnek: El örgüsü bebek battaniyesi yapıyorum…",
-            label_visibility="collapsed",
-        )
+
+        yazarak, sesli = st.tabs(["⌨️  Yazarak anlat", "🎙️  Sesli anlat"])
+
+        with sesli:
+            st.caption("Yazmak zor geliyorsa konuşun — sesinizi metne çeviririz. "
+                       "Kendi kelimeleriniz korunur, cümleleriniz değiştirilmez.")
+            ses_kaydi = st.audio_input("Kaydı başlatmak için mikrofona basın")
+            if ses_kaydi is not None and st.button("🎙️  Sesimi metne çevir",
+                                                   use_container_width=True):
+                with st.spinner("Ses kaydınız yazıya dökülüyor…"):
+                    try:
+                        metin = uret.sesten_metne(ses_kaydi.getvalue(), "audio/wav")
+                        if metin:
+                            st.session_state.anlatim_metni = metin
+                            st.success("Metne çevrildi — soldaki kutuda "
+                                       "düzenleyebilirsiniz.")
+                            st.rerun()
+                        else:
+                            st.warning("Ses anlaşılamadı, tekrar dener misiniz?")
+                    except Exception as hata:
+                        st.error(f"Ses çevrilemedi: {hata}")
+
+        with yazarak:
+            anlatim = st.text_area(
+                "Anlatım", height=175, key="anlatim_metni",
+                placeholder="Ne ürettiğinizi, nasıl yaptığınızı ve ne kadar "
+                            "sürdüğünü anlatın.\n\nÖrnek: El örgüsü bebek "
+                            "battaniyesi yapıyorum…",
+                label_visibility="collapsed",
+            )
         k1, k2 = st.columns(2)
         with k1:
             kategori = st.selectbox("Kategori",
@@ -320,6 +360,46 @@ with s_uret:
             metrik_satiri([(f"{kapsam}/{toplam}", "SEO anahtar kelime"),
                            (str(klise), "klişe ifade"),
                            (f"{benzerlik:.2f}", "kanal benzerliği")])
+
+            # ---------------- EK İÇERİKLER ----------------
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<div class="kart-baslik">✨ Bu ürün için daha fazlası</div>',
+                        unsafe_allow_html=True)
+            e1, e2 = st.columns(2)
+            with e1:
+                if st.button("🎬  Reels senaryosu", use_container_width=True):
+                    with st.spinner("Çekim planı hazırlanıyor…"):
+                        try:
+                            st.session_state.reels = uret.reels_uret(
+                                anlatim=st.session_state.anlatim_metni,
+                                kategori=kategori, ton=ton,
+                                uslup_ornekleri=st.session_state.uslup_ornekleri or None)
+                        except Exception as hata:
+                            st.error(f"Senaryo üretilemedi: {hata}")
+            with e2:
+                if st.button("📸  Fotoğraf rehberi", use_container_width=True):
+                    with st.spinner("Çekim önerileri hazırlanıyor…"):
+                        try:
+                            st.session_state.foto = uret.foto_rehberi_uret(
+                                anlatim=st.session_state.anlatim_metni,
+                                kategori=kategori)
+                        except Exception as hata:
+                            st.error(f"Rehber üretilemedi: {hata}")
+
+            if st.session_state.get("reels"):
+                with st.expander("🎬  Reels / TikTok çekim planı", expanded=True):
+                    st.markdown(st.session_state.reels)
+                    st.download_button("⬇  Senaryoyu indir",
+                                       data=st.session_state.reels,
+                                       file_name="reels_senaryosu.md",
+                                       key="ind_reels")
+            if st.session_state.get("foto"):
+                with st.expander("📸  Fotoğraf çekim rehberi", expanded=True):
+                    st.markdown(st.session_state.foto)
+                    st.download_button("⬇  Rehberi indir",
+                                       data=st.session_state.foto,
+                                       file_name="fotograf_rehberi.md",
+                                       key="ind_foto")
 
     st.markdown('<div class="ifsa">Bu içerik yapay zekâ ile üretilmiştir · '
                 'yayınlamadan önce okuyup düzenleyin — son karar her zaman sizindir'
@@ -630,12 +710,12 @@ with s_nasil:
     st.markdown("#### Diğer özellikler")
     d1, d2, d3 = st.columns(3, gap="medium")
     for kol, ikon, ad, aciklama in [
-        (d1, "🎙️", "Ton Profilim",
-         "Eski paylaşımlarınızı yapıştırın, yapay zekâ sizin gibi yazmayı öğrensin."),
+        (d1, "🎙️", "Sesli anlatım",
+         "Yazmak zor geliyorsa konuşun — sesiniz metne çevrilir, kelimeleriniz korunur."),
         (d2, "📦", "Toplu Üretim",
          "CSV yükleyin, tüm ürünleriniz için tek seferde içerik alın."),
-        (d3, "⚖️", "Karşılaştır",
-         "Üç farklı yöntemi yan yana deneyip en iyisini seçin."),
+        (d3, "🎬", "Reels ve fotoğraf",
+         "Video çekim planı ve ürününüze özel fotoğraf rehberi alın."),
     ]:
         kol.markdown(f'<div class="kart" style="min-height:120px;">'
                      f'<div class="kart-baslik">{ikon}  {ad}</div>'
@@ -677,6 +757,5 @@ with s_etik:
                          f'<div class="kart-baslik">{ikon}  {baslik}</div>'
                          f'<p>{aciklama}</p></div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="altbilgi">Üretken Kadın · Samsung Innovation Campus '
-                'Generative AI Capstone · Tuğçe Deniz &amp; Barış Aslan</div>',
+    st.markdown('<div class="altbilgi">Üretken Kadın · Emeğin dijital sesi</div>',
                 unsafe_allow_html=True)

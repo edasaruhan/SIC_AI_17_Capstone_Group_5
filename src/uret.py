@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 import prompts
 
@@ -115,6 +116,48 @@ def _etiket_yakala(metin: str, bas: str, son: str | None) -> str:
 
 
 # ---------------------------------------------------------------------------
+def sesten_metne(ses_baytlari: bytes, mime_turu: str = "audio/wav",
+                 client: genai.Client | None = None) -> str:
+    """
+    Üreticinin sesli anlatımını metne çevirir.
+
+    Gemini sesi doğrudan işleyebildiği için ayrı bir STT servisi gerekmez.
+    Konuşanın kendi kelimeleri korunur — metin güzelleştirilmez (bkz. SES_TALIMATI).
+    """
+    if not ses_baytlari:
+        raise ValueError("Ses kaydı boş.")
+
+    client = client or istemci_olustur()
+    yanit = client.models.generate_content(
+        model=MODEL,
+        contents=[
+            types.Part.from_bytes(data=ses_baytlari, mime_type=mime_turu),
+            prompts.SES_TALIMATI,
+        ],
+    )
+    return (yanit.text or "").strip()
+
+
+def reels_uret(anlatim: str, kategori: str, ton: str = "sıcak ve samimi",
+               uslup_ornekleri: list[str] | None = None,
+               client: genai.Client | None = None) -> str:
+    """Telefonla çekilebilecek 20-30 sn'lik Reels/TikTok çekim planı (Markdown)."""
+    prompt = prompts.reels_senaryosu(anlatim=anlatim, kategori=kategori, ton=ton,
+                                     uslup_ornekleri=uslup_ornekleri)
+    client = client or istemci_olustur()
+    yanit = client.models.generate_content(model=MODEL, contents=prompt)
+    return (yanit.text or "").strip()
+
+
+def foto_rehberi_uret(anlatim: str, kategori: str,
+                      client: genai.Client | None = None) -> str:
+    """Ürüne özel, telefonla uygulanabilir fotoğraf çekim rehberi (Markdown)."""
+    prompt = prompts.foto_rehberi(anlatim=anlatim, kategori=kategori)
+    client = client or istemci_olustur()
+    yanit = client.models.generate_content(model=MODEL, contents=prompt)
+    return (yanit.text or "").strip()
+
+
 def seo_kapsami(metin: str, anahtar_kelimeler: list[str]) -> int:
     """Üretilen metinde kaç anahtar kelimenin geçtiğini sayar (KPI ölçümü)."""
     kucuk = metin.lower()

@@ -165,6 +165,99 @@ Bu düşünmeyi yaptıktan sonra, yalnızca son içeriği aşağıdaki biçimde 
 
 
 # ---------------------------------------------------------------------------
+# 4) SES → METİN  (üretici ürününü sesli anlatır)
+# ---------------------------------------------------------------------------
+SES_TALIMATI = """Bu ses kaydında bir üretici, kendi ürettiği ürünü anlatıyor.
+
+Kaydı Türkçe olarak yazıya dök. Kurallar:
+- Konuşanın kendi kelimelerini KORU. Düzgün Türkçeye çevirmeye, cümleyi
+  güzelleştirmeye veya kısaltmaya çalışma.
+- Yalnızca "ııı", "şey", "yani bir de" gibi anlamsız doldurma seslerini at ve
+  cümleleri noktalama ile düzenle.
+- Duymadığın hiçbir bilgiyi EKLEME. Anlaşılmayan yeri [anlaşılmadı] diye işaretle.
+- Yalnızca metni yaz; başlık, açıklama veya yorum ekleme."""
+
+
+# ---------------------------------------------------------------------------
+# 5) REELS / TİKTOK SENARYOSU  (video çekimi için plan)
+# ---------------------------------------------------------------------------
+def reels_senaryosu(anlatim: str, kategori: str, ton: str = "sıcak ve samimi",
+                    uslup_ornekleri: list[str] | None = None) -> str:
+    uslup = uslup_blogu(uslup_ornekleri)
+    return f"""{SISTEM_TALIMATI}
+
+Bu kez görevin farklı: üreticinin telefonuyla tek başına çekebileceği,
+20-30 saniyelik bir Reels/TikTok videosu için ÇEKİM PLANI hazırlayacaksın.
+
+Kısıtlar:
+- Üretici tek başına, telefonla, evinde çekiyor. Ekip, stüdyo, ışık ekipmanı YOK.
+- Yüzünü göstermek zorunda kalmasın; eller ve ürün yeterli olsun.
+- Her plan tek cümleyle, yapılabilir biçimde anlatılsın.
+
+ÜRÜN KATEGORİSİ: {kategori}
+İSTENEN TON: {ton}
+{uslup}
+ÜRETİCİNİN KENDİ ANLATIMI:
+\"\"\"{anlatim}\"\"\"
+
+Çıktıyı tam olarak şu Markdown biçiminde ver, başka açıklama ekleme:
+
+**🎣 İlk 3 saniye (kanca)**
+(İzleyiciyi durduracak açılış — ekranda görünecek yazı ya da söylenecek ilk cümle)
+
+**🎬 Çekim planı**
+1. (0-5 sn) …
+2. (5-12 sn) …
+3. (12-20 sn) …
+4. (20-30 sn) …
+
+**🎤 Seslendirme metni**
+(Üreticinin kendi sesiyle okuyacağı, 25 saniyeyi geçmeyen metin)
+
+**📝 Video açıklaması**
+(Gönderi altına yazılacak kısa metin + en fazla 5 hashtag)
+
+**💡 Küçük ipucu**
+(Çekimi kolaylaştıracak tek bir pratik öneri)"""
+
+
+# ---------------------------------------------------------------------------
+# 6) FOTOĞRAF ÇEKİM REHBERİ
+# ---------------------------------------------------------------------------
+def foto_rehberi(anlatim: str, kategori: str) -> str:
+    return f"""{SISTEM_TALIMATI}
+
+Bu kez görevin farklı: üreticinin ürününü kendi telefonuyla, evinde, profesyonel
+ekipman olmadan nasıl fotoğraflayacağını anlatacaksın.
+
+Kısıtlar:
+- Yalnızca telefon kamerası, gün ışığı ve evde bulunabilecek malzemeler.
+- Satın alınması gereken hiçbir şey önerme (softbox, reflektör vb. YOK).
+- Bu ürüne ÖZEL öneriler ver; genel fotoğrafçılık tavsiyesi verme.
+
+ÜRÜN KATEGORİSİ: {kategori}
+ÜRETİCİNİN KENDİ ANLATIMI:
+\"\"\"{anlatim}\"\"\"
+
+Çıktıyı tam olarak şu Markdown biçiminde ver, başka açıklama ekleme:
+
+**📸 Çekmeniz gereken 4 kare**
+1. **Ana kare** — …
+2. **Detay karesi** — …
+3. **Kullanım karesi** — …
+4. **Hikâye karesi** — …
+
+**💡 Işık**
+(Bu ürün için evde en iyi ışığı nasıl bulacağı — tek paragraf)
+
+**🎨 Arka plan ve düzen**
+(Evde bulunabilecek malzemelerle bu ürüne yakışan zemin önerisi)
+
+**⚠️ Kaçınılması gerekenler**
+(Bu üründe sık yapılan iki hata)"""
+
+
+# ---------------------------------------------------------------------------
 # Yardımcılar
 # ---------------------------------------------------------------------------
 def uslup_blogu(uslup_ornekleri: list[str] | None) -> str:
