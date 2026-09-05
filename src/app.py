@@ -103,12 +103,15 @@ st.markdown(f"""
       font-weight: 600; }}
 
   .hero {{ background: linear-gradient(135deg, {ACIK} 0%, #FBF1EC 55%, #F6E6E9 100%);
-      border-radius: 16px; padding: 1.8rem 2.2rem; margin-bottom: 1.3rem;
-      border: 1px solid #EBDDE2; }}
-  .hero h1 {{ color: {KOYU}; font-size: {BASLIK}; margin: 0 0 0.35rem 0;
-      line-height: 1.15; }}
-  .hero p {{ color: #6E6459; font-size: {YAZI}; margin: 0 0 1rem 0; }}
-  .cipler {{ display: flex; gap: 0.6rem; flex-wrap: wrap; }}
+      border-radius: 16px; padding: 2.4rem 2.2rem 2rem; margin-bottom: 1.3rem;
+      border: 1px solid #EBDDE2; text-align: center; }}
+  .hero h1 {{ color: {KOYU}; font-size: {BASLIK}; margin: 0 0 0.6rem 0;
+      line-height: 1.2; letter-spacing: -0.5px; }}
+  .hero .vurgu {{ color: {ANA}; }}
+  .hero p {{ color: #6E6459; font-size: {YAZI}; margin: 0 auto 1.3rem;
+      max-width: 620px; line-height: 1.6; }}
+  .cipler {{ display: flex; gap: 0.6rem; flex-wrap: wrap;
+      justify-content: center; }}
   .cip {{ background: #fff; border: 1px solid #E5D5DB; color: {KOYU};
       padding: 0.4rem 0.95rem; border-radius: 20px; font-size: 0.88rem;
       font-weight: 500; }}
@@ -197,6 +200,15 @@ def olcumler(ig: str, sh: str, kategori: str) -> tuple:
             uret.klise_sayisi(f"{ig} {sh}"), uret.kanal_benzerligi(ig, sh))
 
 
+# Prompt tekniklerinin kullanıcıya gösterilen adları.
+# Teknik terimler parantez içinde, önce anlaşılır Türkçe karşılığı.
+TEKNIK_ADLARI = {
+    "few_shot": "Örneklerle yazdır  (few-shot)",
+    "zero_shot": "Örneksiz yazdır  (zero-shot)",
+    "chain_of_thought": "Adım adım düşündür  (chain-of-thought)",
+}
+
+
 ORNEKLER = [
     ("🧶 Bebek battaniyesi", "Tekstil / El sanatı",
      "El örgüsü bebek battaniyesi yapıyorum. Organik pamuk ipliği kullanıyorum, "
@@ -228,9 +240,10 @@ ORNEKLER = [
 with s_uret:
     st.markdown("""
     <div class="hero">
-      <h1>Ürününüzü anlatın,<br>gerisini biz yazalım.</h1>
-      <p>Kendi cümlelerinizle anlatmanız yeterli — sosyal medya ve satış sayfası
-         metinlerinizi saniyeler içinde hazırlıyoruz.</p>
+      <h1>Emeğinizin bir hikâyesi var.<br>
+          <span class="vurgu">Duyulmasını sağlayalım.</span></h1>
+      <p>Ürününüzü kendi cümlelerinizle anlatın — Instagram gönderiniz,
+         satış sayfası metniniz ve video çekim planınız dakikalar içinde hazır.</p>
       <div class="cipler">
         <div class="cip">✓ Sizin üslubunuz korunur</div>
         <div class="cip">✓ Abartı ve uydurma yok</div>
@@ -292,10 +305,14 @@ with s_uret:
 
         with st.expander("⚙️  Gelişmiş ayarlar (rapor / karşılaştırma için)"):
             teknik = st.radio(
-                "Prompt tekniği", ["few_shot", "zero_shot", "chain_of_thought"],
-                captions=["Örneklerle — varsayılan, en iyi sonuç",
-                          "Örneksiz — karşılaştırma tabanı (baseline)",
-                          "Adım adım düşündürerek"])
+                "Yapay zekâya nasıl yazdıralım?",
+                ["few_shot", "zero_shot", "chain_of_thought"],
+                format_func=lambda t: TEKNIK_ADLARI[t],
+                captions=[
+                    "Örnek metinler göstererek — varsayılan, en iyi sonucu verir",
+                    "Hiç örnek göstermeden — diğerleriyle kıyaslamak için kullanılır",
+                    "Yazmadan önce adım adım düşünmesini isteyerek",
+                ])
 
         if st.button("✦   İçerik Üret", use_container_width=True, type="primary"):
             if not anlatim.strip():
@@ -443,9 +460,7 @@ with s_karsi:
 
     if st.session_state.karsilastirma:
         sonuclar, k_kat = st.session_state.karsilastirma
-        basliklar = {"zero_shot": "Zero-shot (baseline)",
-                     "few_shot": "Few-shot (örneklerle)",
-                     "chain_of_thought": "Chain-of-thought"}
+        basliklar = TEKNIK_ADLARI
         kolonlar = st.columns(3, gap="medium")
         for kol, (tkn, sonuc) in zip(kolonlar, sonuclar.items()):
             with kol:

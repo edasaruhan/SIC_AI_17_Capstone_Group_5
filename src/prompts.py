@@ -202,7 +202,7 @@ Kısıtlar:
 
 Çıktıyı tam olarak şu Markdown biçiminde ver, başka açıklama ekleme:
 
-**🎣 İlk 3 saniye (kanca)**
+**🎣 İlk 3 saniye**
 (İzleyiciyi durduracak açılış — ekranda görünecek yazı ya da söylenecek ilk cümle)
 
 **🎬 Çekim planı**
