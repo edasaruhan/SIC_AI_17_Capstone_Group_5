@@ -28,8 +28,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# Marka renk paleti — semantik tokenler (UI/UX Pro Max "color-semantic" kuralı).
+# Metin/arka plan çiftleri WCAG AA (>=4.5:1) olarak sayısal doğrulanmıştır.
 KOYU = "#4A2138"; ANA = "#9C4368"; ALTIN = "#C08A2D"
 YESIL = "#7E9B85"; ACIK = "#F3ECE4"; ZEMIN = "#FDFBFA"
+METIN = "#3D362F"          # ana metin        (beyazda 11.9:1)
+METIN_YUM = "#5C5249"      # yumuşak metin     (beyazda 7.6:1)
+SOLUK = "#6B5960"          # ikincil/etiket    (beyazda 6.5:1)  eski #8A7A80 = 4.06 idi
+YESIL_METIN = "#4F6E57"    # yeşil metin/indir (beyazda 5.7:1)  eski #7E9B85 = 3.04 idi
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -89,6 +95,46 @@ st.markdown(f"""
   .block-container {{ padding-top: 1rem; max-width: 1200px; }}
   .stTextArea textarea, .stTextInput input {{ font-size: {YAZI} !important; }}
 
+  /* ---- UI/UX Pro Max: erişilebilirlik, dokunma, hareket ve responsive ---- */
+  html {{ font-size: 16px; }}                              /* readable-font-size: 16px taban */
+  .stApp, .stApp p, .stApp li {{ line-height: 1.6; }}      /* line-height 1.5-1.75 */
+  .stApp {{ overflow-x: hidden; }}                          /* horizontal-scroll engeli */
+  .kart p, .hero p {{ overflow-wrap: anywhere; }}           /* uzun kelime taşması */
+
+  /* Görünür klavye odak halkası — focus-states / focus-appearance (CRITICAL) */
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  textarea:focus-visible, select:focus-visible, [role="tab"]:focus-visible {{
+      outline: 3px solid {ALTIN} !important; outline-offset: 2px !important;
+      border-radius: 6px; }}
+
+  /* Dokunma hedefi >=44px + imleç + yumuşak geçiş (touch-target-size, cursor-pointer) */
+  div.stButton > button, div.stDownloadButton > button {{
+      min-height: 44px; cursor: pointer;
+      transition: background 160ms ease, transform 120ms ease, box-shadow 160ms ease; }}
+  div.stButton > button:hover:not(:disabled),
+  div.stDownloadButton > button:hover:not(:disabled) {{
+      transform: translateY(-1px); box-shadow: 0 4px 14px rgba(74,33,56,0.18); }}
+  div.stButton > button:active:not(:disabled) {{ transform: translateY(0) scale(0.99); }}
+  /* Devre dışı durum netliği (disabled-states) */
+  div.stButton > button:disabled, div.stDownloadButton > button:disabled {{
+      opacity: 0.5; cursor: not-allowed; }}
+  .stCheckbox label, [data-testid="stFileUploaderDropzone"] {{ cursor: pointer; }}
+
+  .metrik-deger {{ font-variant-numeric: tabular-nums; }}   /* number-tabular */
+
+  /* Hareket duyarlılığı — reduced-motion (CRITICAL erişilebilirlik) */
+  @media (prefers-reduced-motion: reduce) {{
+      *, *::before, *::after {{ transition: none !important; animation: none !important; }}
+  }}
+
+  /* Küçük ekran uyumu — mobile-first / breakpoint-consistency (375-640px) */
+  @media (max-width: 640px) {{
+      .navbar {{ flex-direction: column; gap: 0.7rem; align-items: flex-start; }}
+      .hero {{ padding: 1.6rem 1.1rem; }}
+      .hero h1 {{ font-size: 1.7rem; }}
+      .cipler {{ gap: 0.4rem; }}
+  }}
+
   .navbar {{ display: flex; align-items: center; justify-content: space-between;
       background: {KOYU}; padding: 0.85rem 1.6rem; border-radius: 14px;
       margin-bottom: 1.2rem; box-shadow: 0 4px 18px rgba(74,33,56,0.18); }}
@@ -111,7 +157,7 @@ st.markdown(f"""
   .hero h1 {{ color: {KOYU}; font-size: {BASLIK}; margin: 0 0 0.6rem 0;
       line-height: 1.2; letter-spacing: -0.5px; }}
   .hero .vurgu {{ color: {ANA}; }}
-  .hero p {{ color: #6E6459; font-size: {YAZI}; margin: 0 auto 1.3rem;
+  .hero p {{ color: {METIN_YUM}; font-size: {YAZI}; margin: 0 auto 1.3rem;
       max-width: 620px; line-height: 1.6; }}
   .cipler {{ display: flex; gap: 0.6rem; flex-wrap: wrap;
       justify-content: center; }}
@@ -138,13 +184,13 @@ st.markdown(f"""
       padding: 0.8rem 1rem; text-align: center; }}
   .metrik-deger {{ color: {ANA}; font-size: 1.6rem; font-weight: 700;
       line-height: 1.1; }}
-  .metrik-etiket {{ color: #8A7A80; font-size: 0.82rem; margin-top: 0.25rem; }}
+  .metrik-etiket {{ color: {SOLUK}; font-size: 0.82rem; margin-top: 0.25rem; }}
 
   div.stButton > button {{ background: {ANA}; color: #fff; border: none;
       border-radius: 9px; font-weight: 600; padding: 0.6rem 1rem;
       font-size: 0.98rem; }}
   div.stButton > button:hover {{ background: {KOYU}; color: #fff; }}
-  div.stDownloadButton > button {{ background: #fff; color: {YESIL};
+  div.stDownloadButton > button {{ background: #fff; color: {YESIL_METIN};
       border: 1.5px solid {YESIL}; border-radius: 9px; font-weight: 600; }}
 
   .stTabs [data-baseweb="tab-list"] {{ gap: 0.3rem; flex-wrap: wrap; }}
@@ -153,9 +199,9 @@ st.markdown(f"""
   .stTabs [aria-selected="true"] {{ background: {ACIK}; color: {KOYU} !important; }}
 
   .ifsa {{ background: #FBF6F2; border: 1px dashed #DCC9CF; border-radius: 10px;
-      color: #7A6C72; font-size: 0.88rem; text-align: center; padding: 0.7rem;
+      color: {SOLUK}; font-size: 0.88rem; text-align: center; padding: 0.7rem;
       margin-top: 1.5rem; }}
-  .altbilgi {{ color: #A0949A; font-size: 0.84rem; text-align: center;
+  .altbilgi {{ color: {SOLUK}; font-size: 0.84rem; text-align: center;
       margin-top: 0.8rem; }}
 </style>
 """, unsafe_allow_html=True)
