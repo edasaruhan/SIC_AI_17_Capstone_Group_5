@@ -14,6 +14,13 @@ venv/
 # harcamadan gorebilmesi icin repoda tutuluyor.
 *.log
 
+# Egitilmis model ikilisi (surume duyarli; kalite_egit.py ile yeniden uretilir).
+# ciktilar/model/ altindaki metrik ve grafikler BILEREK tutulur (capstone kaniti).
+models/
+
+# Calisma-aninda uretilen Google Trends onbellegi
+data/trends_onbellek.json
+
 # Isletim sistemi
 .DS_Store
 Thumbs.db
