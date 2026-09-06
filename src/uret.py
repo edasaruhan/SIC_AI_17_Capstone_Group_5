@@ -60,6 +60,7 @@ def icerik_uret(anlatim: str,
                 teknik: str = "few_shot",
                 anahtar_kelimeler: list[str] | None = None,
                 uslup_ornekleri: list[str] | None = None,
+                trends_kullan: bool = True,
                 client: genai.Client | None = None) -> Icerik:
     """
     Üreticinin anlatımından pazarlama içeriği üretir.
@@ -68,13 +69,22 @@ def icerik_uret(anlatim: str,
                        (rapordaki prompt karşılaştırması için üçü de kullanılabilir)
     uslup_ornekleri  : üreticinin kendi yazdığı metinler — verilirse model bu
                        üslubu taklit eder ("Ton Profilim" özelliği)
+    trends_kullan    : anahtar_kelimeler verilmediyse Google Trends'ten canlı
+                       çekilsin mi? (kapatınca prompts'taki sabit liste kullanılır —
+                       toplu testte tekrarlanabilirlik için False verilir)
     """
     if not anlatim or not anlatim.strip():
         raise ValueError("Anlatım boş olamaz.")
 
-    # Kategoriye ait varsayılan kelimeler (A4'te pytrends ile değişecek)
+    # Anahtar kelimeler: önce Google Trends (canlı arama davranışı), olmazsa sabit
+    # kategori listesi. trends modülü her hata durumunda kendi içinde varsayılana
+    # düştüğü için burada ayrıca try/except gerekmez.
     if anahtar_kelimeler is None:
-        anahtar_kelimeler = prompts.KATEGORI_KELIMELERI.get(kategori, [])
+        if trends_kullan:
+            import trends
+            anahtar_kelimeler = trends.anahtar_kelimeler(kategori)
+        else:
+            anahtar_kelimeler = prompts.KATEGORI_KELIMELERI.get(kategori, [])
 
     prompt_uret = {
         "zero_shot": prompts.zero_shot,
