@@ -14,7 +14,10 @@ from datetime import datetime
 
 import streamlit as st
 
+import kalite
+import kvkk
 import prompts
+import trends
 import uret
 
 # ---------------------------------------------------------------------------
@@ -37,7 +40,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 varsayilanlar = {
     "sonuc": None, "gecmis": [], "anlatim_metni": "",
     "uslup_ornekleri": [], "karsilastirma": None, "toplu_sonuc": None,
-    "reels": None, "foto": None,
+    "reels": None, "foto": None, "ses_rizasi": False,
 }
 for anahtar, deger in varsayilanlar.items():
     st.session_state.setdefault(anahtar, deger)
@@ -230,7 +233,7 @@ ORNEKLER = [
 (s_uret, s_karsi, s_ton, s_toplu,
  s_gecmis, s_panel, s_nasil, s_etik) = st.tabs([
     "✍️  İçerik Üret", "⚖️  Karşılaştır", "🎙️  Ton Profilim", "📦  Toplu Üretim",
-    "📁  Geçmişim", "📊  Panel", "💡  Nasıl Çalışır", "🛡️  Etik",
+    "📁  Geçmişim", "📊  Panel", "💡  Nasıl Çalışır", "🛡️  Etik & KVKK",
 ])
 
 
@@ -270,9 +273,20 @@ with s_uret:
         with sesli:
             st.caption("Yazmak zor geliyorsa konuşun — sesinizi metne çeviririz. "
                        "Kendi kelimeleriniz korunur, cümleleriniz değiştirilmez.")
+
+            # --- KVKK aydınlatma + açık rıza kapısı (ses özel nitelikli olabilir) ---
+            with st.expander("🔒  Verileriniz nasıl işlenir? (KVKK)", expanded=False):
+                st.markdown(kvkk.SES_AYDINLATMA)
+            st.session_state.ses_rizasi = st.checkbox(
+                kvkk.SES_RIZA_ETIKETI, value=st.session_state.ses_rizasi)
+
             ses_kaydi = st.audio_input("Kaydı başlatmak için mikrofona basın")
-            if ses_kaydi is not None and st.button("🎙️  Sesimi metne çevir",
-                                                   use_container_width=True):
+            cevir = st.button("🎙️  Sesimi metne çevir", use_container_width=True,
+                              disabled=not st.session_state.ses_rizasi)
+            if ses_kaydi is not None and not st.session_state.ses_rizasi:
+                st.info("Devam etmek için yukarıdaki **açık rıza** kutusunu "
+                        "işaretleyin — ya da yazarak anlatın.")
+            if ses_kaydi is not None and st.session_state.ses_rizasi and cevir:
                 with st.spinner("Ses kaydınız yazıya dökülüyor…"):
                     try:
                         metin = uret.sesten_metne(ses_kaydi.getvalue(), "audio/wav")
@@ -294,6 +308,7 @@ with s_uret:
                             "battaniyesi yapıyorum…",
                 label_visibility="collapsed",
             )
+            st.caption("🔒 " + kvkk.METIN_AYDINLATMA)
         k1, k2 = st.columns(2)
         with k1:
             kategori = st.selectbox("Kategori",
@@ -313,6 +328,18 @@ with s_uret:
                     "Hiç örnek göstermeden — diğerleriyle kıyaslamak için kullanılır",
                     "Yazmadan önce adım adım düşünmesini isteyerek",
                 ])
+
+            st.divider()
+            st.caption("SEO anahtar kelimeleri Google Trends'ten canlı çekilir; "
+                       "ulaşılamazsa sabit listeye düşülür.")
+            if st.button("🔎  Bu kategori için Trends kelimelerini göster"):
+                with st.spinner("Google Trends sorgulanıyor…"):
+                    ts = trends.trend_getir(kategori)
+                etiket = {"trends": "Google Trends (canlı)",
+                          "önbellek": "Google Trends (önbellek)",
+                          "varsayılan": "Varsayılan liste (Trends'e ulaşılamadı)"}
+                st.info(f"**Kaynak:** {etiket[ts.kaynak]}\n\n"
+                        + ", ".join(ts.kelimeler))
 
         if st.button("✦   İçerik Üret", use_container_width=True, type="primary"):
             if not anlatim.strip():
@@ -377,6 +404,22 @@ with s_uret:
             metrik_satiri([(f"{kapsam}/{toplam}", "SEO anahtar kelime"),
                            (str(klise), "klişe ifade"),
                            (f"{benzerlik:.2f}", "kanal benzerliği")])
+
+            # ---------- KALİTE ÖN-FİLTRESİ (HITL yardımcısı) ----------
+            model = kalite.model_al()
+            if model.mevcut():
+                thn = model.tahmin(f"{ig}\n{sh}", kategori)
+                if thn["hazir"]:
+                    st.success(f"🤖 **Onaya hazır** görünüyor "
+                               f"(güven %{thn['olasilik'] * 100:.0f}). Yine de okuyup "
+                               "onaylayın — son karar sizde.")
+                else:
+                    neden = "; ".join(thn["gerekceler"]) or "kalite sinyalleri zayıf"
+                    st.warning(f"🤖 **Gözden geçirmenizi öneririz** "
+                               f"(hazır olasılığı %{thn['olasilik'] * 100:.0f}). "
+                               f"Dikkat: {neden}.")
+                st.caption("Bu bir yardımcı tahmindir (içerik kalite modeli), "
+                           "karar değil. Metni siz onaylarsınız.")
 
             # ---------------- EK İÇERİKLER ----------------
             st.markdown("<br>", unsafe_allow_html=True)
@@ -680,6 +723,37 @@ with s_panel:
             with st.expander("📄  Ham veriyi göster"):
                 st.dataframe(satirlar, use_container_width=True, hide_index=True)
 
+    # ---------- İÇERİK KALİTE MODELİ ----------
+    st.divider()
+    st.markdown("### 🤖 İçerik kalite modeli")
+    st.write("İçeriğin *onaya hazır* mı yoksa *revizyon gerek* mi olduğunu kestiren "
+             "sınıflandırıcı (HITL ön-filtresi). Metrikler prototip veri setinde "
+             "hesaplanmıştır; saha pilotunda güncellenecektir.")
+    metrik_yolu = os.path.join(KOK, "ciktilar", "model", "metrikler.json")
+    if not os.path.exists(metrik_yolu):
+        st.info("Model henüz eğitilmemiş.\n\n"
+                "Terminalden: `python src/kalite_veri_uret.py` sonra "
+                "`python src/kalite_egit.py`")
+    else:
+        import json as _json
+        with open(metrik_yolu, encoding="utf-8") as f:
+            m = _json.load(f)
+        metrik_satiri([
+            (f"%{m['dogruluk'] * 100:.0f}", "doğruluk"),
+            (f"{m['f1_yuksek']:.2f}", "F1 (yüksek)"),
+            (f"{m['roc_auc']:.2f}", "ROC-AUC"),
+            (f"{m['duyarlilik_dusuk']:.2f}", "recall (düşük sınıf)"),
+        ])
+        st.markdown("<br>", unsafe_allow_html=True)
+        g1, g2, g3 = st.columns(3, gap="medium")
+        for kol, dosya, alt in [
+            (g1, "confusion_matrix.png", "Confusion matrix"),
+            (g2, "roc_egrisi.png", "ROC eğrisi"),
+            (g3, "oznitelik_onemi.png", "Öznitelik önemi")]:
+            yol = os.path.join(KOK, "ciktilar", "model", dosya)
+            if os.path.exists(yol):
+                kol.image(yol, caption=alt, use_container_width=True)
+
 
 # ===========================================================================
 # 7 — NASIL ÇALIŞIR
@@ -770,6 +844,18 @@ with s_etik:
         for kol, (ikon, baslik, aciklama) in zip((kol1, kol2), ilkeler[i:i + 2]):
             kol.markdown(f'<div class="kart" style="min-height:128px;">'
                          f'<div class="kart-baslik">{ikon}  {baslik}</div>'
+                         f'<p>{aciklama}</p></div>', unsafe_allow_html=True)
+
+    st.divider()
+    st.markdown("### 🔒 KVKK — Kişisel verileriniz")
+    st.write("Sesli/yazılı anlatımınız içerik üretmek için Google Gemini'ye "
+             "gönderilir. Bunun ne anlama geldiğini açıkça anlatıyoruz:")
+    for i in range(0, len(kvkk.POLITIKA_MADDELERI), 2):
+        kol1, kol2 = st.columns(2, gap="medium")
+        for kol, (baslik, aciklama) in zip((kol1, kol2),
+                                           kvkk.POLITIKA_MADDELERI[i:i + 2]):
+            kol.markdown(f'<div class="kart" style="min-height:130px;">'
+                         f'<div class="kart-baslik">{baslik}</div>'
                          f'<p>{aciklama}</p></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="altbilgi">Üretken Kadın · Emeğin dijital sesi</div>',
