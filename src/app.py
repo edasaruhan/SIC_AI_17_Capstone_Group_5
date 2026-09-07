@@ -20,6 +20,7 @@ import os
 from datetime import datetime
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 import kalite
 import kvkk
@@ -67,19 +68,52 @@ ORNEKLER = [
 # ---------------------------------------------------------------------------
 # Oturum durumu
 # ---------------------------------------------------------------------------
+EKRANLAR = ("karsilama", "anlat", "sonuc", "iceriklerim", "ton", "yardim")
+
 varsayilanlar = {
-    "ekran": "karsilama", "sonuc": None, "gecmis": [], "anlatim_metni": "",
-    "kategori_key": "Tekstil / El sanatı", "uslup_ornekleri": [],
-    "reels": None, "foto": None, "ses_rizasi": False,
+    "ekran": "karsilama", "yigin": [], "sonuc": None, "gecmis": [],
+    "anlatim_metni": "", "kategori_key": "Tekstil / El sanatı",
+    "uslup_ornekleri": [], "reels": None, "foto": None, "ses_rizasi": False,
     "karsilastirma": None, "toplu_sonuc": None,
 }
 for a, d in varsayilanlar.items():
     st.session_state.setdefault(a, d)
 
 
+def _url_yaz(hedef: str) -> None:
+    """Ekranı URL'e yazar — tarayıcının geri/ileri tuşu da çalışsın diye."""
+    try:
+        st.query_params["ekran"] = hedef
+    except Exception:
+        pass
+
+
 def git(hedef: str) -> None:
+    """Yeni ekrana geçer ve geldiği ekranı geri yığınına koyar."""
+    if st.session_state.ekran != hedef:
+        st.session_state.yigin.append(st.session_state.ekran)
+        st.session_state.yigin = st.session_state.yigin[-10:]   # yığın şişmesin
     st.session_state.ekran = hedef
+    _url_yaz(hedef)
     st.rerun()
+
+
+def geri() -> None:
+    """Bir önceki ekrana döner; yığın boşsa karşılamaya."""
+    hedef = st.session_state.yigin.pop() if st.session_state.yigin else "karsilama"
+    st.session_state.ekran = hedef
+    _url_yaz(hedef)
+    st.rerun()
+
+
+# Tarayıcının geri/ileri tuşu URL'i değiştirir; onu ekrana yansıt.
+try:
+    # Parametre yoksa kök ekran sayılır; böylece ilk adımda da geri tuşu çalışır.
+    _url_ekran = st.query_params.get("ekran") or "karsilama"
+    if _url_ekran in EKRANLAR and _url_ekran != st.session_state.ekran:
+        st.session_state.ekran = _url_ekran
+except Exception:
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -237,21 +271,47 @@ textarea:focus-visible, select:focus-visible, [data-baseweb="select"]:focus-with
 # ---------------------------------------------------------------------------
 # Ortak parçalar
 # ---------------------------------------------------------------------------
-def ust_bar(geri: str | None = None) -> None:
-    """Sade üst bar: logo + gezinme. `geri` verilirse sol başa geri düğmesi."""
+def ust_bar() -> None:
+    """Sade üst bar: logo + geri düğmesi + gezinme."""
     st.markdown(
         '<div class="ustbar"><div class="logo">🧵</div>'
         '<div><div class="ad">Üretken Kadın</div>'
         '<div class="alt">Emeğin dijital sesi</div></div></div>',
         unsafe_allow_html=True)
-    kols = st.columns([1, 1, 1] if not geri else [1, 1, 1, 1])
-    if kols[0].button("✨ Yeni içerik", use_container_width=True, key=f"nav_yeni_{geri}"):
+    k = st.columns([1, 1, 1.15, 0.95])
+    if k[0].button("← Geri", use_container_width=True, key="nav_geri",
+                   help="Bir önceki ekrana dön"):
+        geri()
+    if k[1].button("✨ Yeni", use_container_width=True, key="nav_yeni",
+                   help="Yeni bir ürün anlatın"):
         git("anlat")
-    if kols[1].button("📁 İçeriklerim", use_container_width=True, key=f"nav_gec_{geri}"):
+    if k[2].button("📁 İçeriklerim", use_container_width=True, key="nav_gec"):
         git("iceriklerim")
-    if kols[2].button("❓ Yardım", use_container_width=True, key=f"nav_yardim_{geri}"):
+    if k[3].button("❓ Yardım", use_container_width=True, key="nav_yardim"):
         git("yardim")
-    st.markdown("<div style='height:.6rem'></div>", unsafe_allow_html=True)
+
+    # Tarayıcının geri tuşunu uygulamanın kendi "← Geri" düğmesine bağlar.
+    # (Streamlit popstate'te kendiliğinden yeniden çalışmaz; sayfayı yenilemek ise
+    # oturumu — üretilen içerikleri — silerdi. Bu köprü oturumu korur.)
+    components.html("""
+    <script>
+    (function(){
+      const p = window.parent;
+      if (!p || p.__uk_geri_koprusu) return;
+      p.__uk_geri_koprusu = true;
+      // ÖNEMLİ: dinleyiciyi ana pencerenin bağlamında üret. Bu bileşen iframe'i
+      // her yeniden çizimde yok edildiğinden, iframe bağlamında tanımlanan bir
+      // fonksiyon ilk geri'den sonra ölü kalır.
+      const elle = new p.Function(
+        "for (const b of document.querySelectorAll('button')) {" +
+        "  if ((b.innerText || '').trim().indexOf('← Geri') === 0) { b.click(); break; }" +
+        "}"
+      );
+      p.addEventListener('popstate', elle);
+    })();
+    </script>
+    """, height=0)
+    st.markdown("<div style='height:.4rem'></div>", unsafe_allow_html=True)
 
 
 def kalite_ipucu(ig: str, sh: str, kategori: str) -> None:
