@@ -126,6 +126,10 @@ class KaliteModeli:
                 self._paket = joblib.load(self.yol)
         except Exception:
             self._paket = None
+        # Model dosyası yoksa (ör. Streamlit Cloud — joblib gitignore'da) etiketli
+        # CSV'den kendi kendine eğit. Sklearn yoksa/CSV yoksa sessizce devre dışı.
+        if self._paket is None:
+            self._paket = egit_bellekte()
 
     def mevcut(self) -> bool:
         return self._paket is not None
@@ -186,6 +190,44 @@ class KaliteModeli:
         if oz["hikaye_ipucu"] == 0:
             g.append("üretim/öykü ipucu yok")
         return g
+
+
+# ---------------------------------------------------------------------------
+def egit_bellekte(veri_yolu: Path | str | None = None) -> dict | None:
+    """
+    Model dosyası yoksa etiketli CSV'den hızlıca (grafik/GridSearch/eval olmadan)
+    bir model eğitip paket sözlüğü döndürür. Streamlit Cloud gibi model ikilisinin
+    repoda bulunmadığı ortamlarda kalite ön-filtresini kendi kendine kurar.
+
+    Ayrıntılı eğitim/değerlendirme için kalite_egit.py kullanılır; bu yalnızca
+    çalışır bir model için hafif yedektir. sklearn/CSV yoksa None döner (rozet gizlenir).
+    """
+    veri_yolu = Path(veri_yolu or (_KOK / "data" / "kalite_etiketli.csv"))
+    if not veri_yolu.exists():
+        return None
+    try:
+        import numpy as np
+        import pandas as pd
+        from scipy.sparse import hstack
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.preprocessing import StandardScaler
+
+        df = (pd.read_csv(veri_yolu)
+              .dropna(subset=["metin", "hedef"]).drop_duplicates(subset=["metin"]))
+        vekt = TfidfVectorizer(max_features=500, ngram_range=(1, 2), min_df=2)
+        X_txt = vekt.fit_transform(df["metin"].map(metni_temizle))
+        X_num = np.array([oznitelik_vektoru(m, k)
+                          for m, k in zip(df["metin"], df["kategori"])], dtype=float)
+        scaler = StandardScaler()
+        X = hstack([X_txt, scaler.fit_transform(X_num)])
+        model = RandomForestClassifier(n_estimators=300, class_weight="balanced",
+                                       random_state=42)
+        model.fit(X, df["hedef"].astype(int).values)
+        return {"model": model, "vektorizer": vekt, "scaler": scaler, "esik": 0.5,
+                "sayisal_oznitelikler": SAYISAL_OZNITELIKLER}
+    except Exception:
+        return None
 
 
 # Modül düzeyinde tek örnek (arayüz tekrar tekrar yüklemesin diye).

@@ -34,6 +34,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# Streamlit Cloud'da API anahtarı "secret" olarak gelir; uret.py os.getenv okuduğu
+# için secret'ı ortam değişkenine aktarıyoruz (yerelde .env kullanılmaya devam eder).
+try:
+    for _a in ("GEMINI_API_KEY", "GEMINI_MODEL"):
+        if _a in st.secrets:
+            os.environ.setdefault(_a, str(st.secrets[_a]))
+except Exception:
+    pass
+
 # Python tarafında (grafikler vb.) gereken renkler; tam palet CSS :root'ta.
 ANA = "#9B3D63"; KOYU = "#4A2138"; SAGE = "#6E8F77"
 
@@ -268,12 +277,24 @@ textarea:focus-visible, select:focus-visible, [role="tab"]:focus-visible,
   *, *::before, *::after {{ transition: none !important; animation: none !important; }}
 }}
 
-/* ---- Responsive ---- */
+/* ---- Responsive (mobile-first inceltmeler) ---- */
 @media (max-width: 720px) {{
-  .navbar {{ flex-direction: column; gap: 0.7rem; align-items: flex-start; }}
+  .block-container {{ padding-left: 0.8rem; padding-right: 0.8rem; }}
+  .navbar {{ flex-direction: column; gap: 0.6rem; align-items: flex-start;
+    padding: 0.85rem 1.1rem; }}
+  .nav-sag {{ flex-wrap: wrap; gap: 0.7rem; }}
   .adimlar {{ grid-template-columns: 1fr; }}
-  .hero {{ padding: 1.8rem 1.2rem; }}
-  .hero h1 {{ font-size: 1.8rem; }}
+  .hero {{ padding: 1.7rem 1.1rem; }}
+  .hero h1 {{ font-size: 1.75rem; }}
+  .hero p {{ font-size: 1rem; }}
+  /* 8 sekme mobilde tek satırda yatay kaysın (alt alta kırılmak yerine) */
+  .stTabs [data-baseweb="tab-list"] {{ flex-wrap: nowrap; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; }}
+  .stTabs [data-baseweb="tab"] {{ white-space: nowrap; padding: 0.5rem 0.7rem; }}
+}}
+@media (max-width: 420px) {{
+  .hero h1 {{ font-size: 1.55rem; }}
+  .metrik-deger {{ font-size: 1.35rem; }}
 }}
 </style>
 """, unsafe_allow_html=True)

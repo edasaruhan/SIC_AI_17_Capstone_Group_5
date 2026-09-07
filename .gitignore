@@ -21,6 +21,9 @@ models/
 # Calisma-aninda uretilen Google Trends onbellegi
 data/trends_onbellek.json
 
+# Streamlit secret'lari ASLA repoya girmemeli (config.toml girer, secrets.toml girmez)
+.streamlit/secrets.toml
+
 # Isletim sistemi
 .DS_Store
 Thumbs.db
