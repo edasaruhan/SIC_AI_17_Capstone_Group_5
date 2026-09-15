@@ -14,10 +14,11 @@ Mühendis/rapor işleri (prompt karşılaştırma, test paneli, ML metrikleri, t
 
 import csv
 import glob
+import html
 import io
 import json
 import os
-from datetime import datetime
+from datetime import timedelta
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -25,6 +26,7 @@ import streamlit.components.v1 as components
 import kalite
 import kvkk
 import prompts
+import takvim
 import trends
 import uret
 
@@ -70,16 +72,22 @@ ORNEKLER = [
 # ---------------------------------------------------------------------------
 # Oturum durumu
 # ---------------------------------------------------------------------------
-EKRANLAR = ("karsilama", "anlat", "sonuc", "iceriklerim", "ton", "yardim")
+EKRANLAR = ("karsilama", "anlat", "sonuc", "pano", "iceriklerim", "ton", "yardim")
 
 varsayilanlar = {
     "ekran": "karsilama", "yigin": [], "sonuc": None, "gecmis": [],
     "anlatim_metni": "", "kategori_key": "Tekstil / El sanatı",
-    "uslup_ornekleri": [], "reels": None, "foto": None, "ses_rizasi": False,
+    "uslup_ornekleri": [], "ses_rizasi": False,
+    "aktif_id": None, "plan": [], "pano_mesaj": None,
     "karsilastirma": None, "toplu_sonuc": None,
 }
 for a, d in varsayilanlar.items():
     st.session_state.setdefault(a, d)
+# Geçmiş kayıtları kimlikle takvime ve ek formatlara bağlanır; eski oturumlarda eksik olabilir.
+for _k in st.session_state.gecmis:
+    _k.setdefault("id", takvim.yeni_id())
+    _k.setdefault("tarih", "")
+    _k.setdefault("ekler", {})
 
 
 def _url_yaz(hedef: str) -> None:
@@ -259,14 +267,31 @@ textarea:focus-visible, select:focus-visible, [data-baseweb="select"]:focus-with
 .stTabs [data-baseweb="tab-list"] {{ gap:.25rem; flex-wrap:wrap; }}
 .stTabs [data-baseweb="tab"] {{ font-family:'Lexend'; font-weight:600; }}
 
+/* Pano */
+.ozet {{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:.3rem 0 1rem; }}
+.ozet .kutu {{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:.85rem .9rem; box-shadow:var(--shadow-sm); animation:gir .35s ease both; }}
+.ozet .deger {{ font-family:'Lexend'; font-weight:700; font-size:1.35rem; color:var(--primary-deep);
+  line-height:1.2; overflow-wrap:anywhere; }}
+.ozet .etiket {{ font-size:.86rem; color:var(--muted); margin-top:.15rem; }}
+.gun-baslik {{ font-family:'Lexend'; font-weight:600; color:var(--primary); margin:1.1rem 0 .35rem; }}
+
 @keyframes gir {{ from {{opacity:0; transform:translateY(10px);}} to {{opacity:1; transform:none;}} }}
 @media (prefers-reduced-motion: reduce) {{ *,*::before,*::after {{ animation:none !important; transition:none !important; }} }}
 @media (max-width:640px) {{
   .adimlar {{ grid-template-columns:1fr; }}
   .karsilama h1 {{ font-size:1.75rem; }}
+  .ozet {{ gap:.4rem; }}
+  .ozet .kutu {{ padding:.6rem .55rem; }}
+  .ozet .deger {{ font-size:1.02rem; }}
+  .ozet .etiket {{ font-size:.78rem; }}
   .block-container {{ padding-left:.9rem; padding-right:.9rem; }}
   /* Yan yana düğmeler (gezinme, eylemler) mobilde alt alta yığılmasın */
   [data-testid="stHorizontalBlock"] {{ flex-wrap:nowrap !important; gap:.4rem !important; }}
+  /* Streamlit dar ekranda her sütuna %100 en küçük genişlik verir; nowrap ile birleşince
+     sütunlar ekran dışına taşar (375px'te "Panom"/"Yardım" görünmüyordu). Eşit paylaştır. */
+  [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+    min-width:0 !important; width:auto !important; flex:1 1 0 !important; }}
   [data-testid="stHorizontalBlock"] .stButton > button {{
     font-size:.88rem; padding:.5rem .4rem; min-height:46px; }}
 }}
@@ -291,8 +316,9 @@ def ust_bar() -> None:
     if k[1].button("✨ Yeni", use_container_width=True, key="nav_yeni",
                    help="Yeni bir ürün anlatın"):
         git("anlat")
-    if k[2].button("📁 İçeriklerim", use_container_width=True, key="nav_gec"):
-        git("iceriklerim")
+    if k[2].button("🏠 Panom", use_container_width=True, key="nav_gec",
+                   help="İçerikleriniz ve paylaşım takviminiz"):
+        git("pano")
     if k[3].button("❓ Yardım", use_container_width=True, key="nav_yardim"):
         git("yardim")
 
@@ -368,6 +394,9 @@ def ekran_karsilama() -> None:
         git("anlat")
     if st.button("Nasıl çalıştığını anlat", use_container_width=True):
         git("yardim")
+    if st.button("📂 Kayıtlı planımla devam et", use_container_width=True,
+                 help="Daha önce kaydettiğiniz içerik ve takvim dosyasını yükleyin"):
+        git("pano")
 
 
 # ===========================================================================
@@ -443,16 +472,95 @@ def ekran_anlat() -> None:
                         anlatim=anlatim, kategori=st.session_state.kategori_key,
                         ton="sıcak ve samimi", teknik="few_shot", ozenli=ozenli,
                         uslup_ornekleri=st.session_state.uslup_ornekleri or None)
+                    an = takvim.simdi()          # sunucu UTC olsa da Türkiye saati
+                    kayit_id = takvim.yeni_id()
                     st.session_state.sonuc = sonuc
                     st.session_state.ozenli_istendi = ozenli
-                    st.session_state.reels = st.session_state.foto = None
+                    st.session_state.aktif_id = kayit_id
                     st.session_state.gecmis.insert(0, {
-                        "saat": datetime.now().strftime("%H:%M"),
+                        "id": kayit_id, "tarih": an.date().isoformat(),
+                        "saat": an.strftime("%H:%M"),
                         "kategori": st.session_state.kategori_key, "anlatim": anlatim,
-                        "instagram": sonuc.instagram, "shopier": sonuc.shopier})
+                        "instagram": sonuc.instagram, "shopier": sonuc.shopier,
+                        "ekler": {}})
                     git("sonuc")
                 except Exception as e:
                     st.error(f"İçerik hazırlanamadı: {e}")
+
+
+# ===========================================================================
+# Sonuç ekranı yardımcıları: ek formatlar ve paylaşım zamanı
+# ===========================================================================
+EK_ETIKETLER = {"story": "🟣 Hikâye", "whatsapp": "💬 WhatsApp", "hashtag": "#️⃣ Hashtag",
+                "reels": "🎬 Video planı", "foto": "📸 Fotoğraf"}
+EK_BASLIKLAR = {"story": "Instagram hikâyesi (3 kare)", "whatsapp": "WhatsApp metinleri",
+                "hashtag": "Hashtag seti", "reels": "Video çekim planı",
+                "foto": "Fotoğraf önerileri"}
+
+
+def kayit_bul(kayit_id: str | None) -> dict | None:
+    return next((k for k in st.session_state.gecmis if k.get("id") == kayit_id), None)
+
+
+def ek_uret(bicim: str, kayit: dict) -> None:
+    """Seçilen ek formatı üretir ve içeriğin kaydına ekler (panoda ve kayıt dosyasında da görünür)."""
+    anlatim, kategori = kayit["anlatim"], kayit["kategori"]
+    uslup = st.session_state.uslup_ornekleri or None
+    with st.spinner("Hazırlanıyor…"):
+        try:
+            if bicim == "reels":
+                metin = uret.reels_uret(anlatim=anlatim, kategori=kategori, ozenli=ozenli,
+                                        uslup_ornekleri=uslup)
+            elif bicim == "foto":
+                metin = uret.foto_rehberi_uret(anlatim=anlatim, kategori=kategori,
+                                               ozenli=ozenli)
+            else:
+                metin = uret.ek_format_uret(anlatim=anlatim, kategori=kategori, bicim=bicim,
+                                            uslup_ornekleri=uslup, ozenli=ozenli)
+            kayit.setdefault("ekler", {})[bicim] = metin
+        except Exception as e:
+            st.error(f"Hazırlanamadı: {e}")
+
+
+def paylasim_zamani(kayit: dict) -> None:
+    """Bu içeriği takvime ekler; telefona .ics dosyasıyla hatırlatma olarak aktarılır."""
+    plan, aid = st.session_state.plan, kayit["id"]
+    st.markdown('<div class="kart-baslik" style="margin-top:1.4rem">📅 Ne zaman '
+                'paylaşacaksınız?</div>', unsafe_allow_html=True)
+    st.caption(f"Seçtiğiniz saatten {takvim.HATIRLATMA_DK} dakika önce telefonunuz "
+               "hatırlatsın; paylaşacağınız metin hatırlatmanın içinde hazır olur.")
+    oneri = (takvim.sonraki_zamanlar(takvim.VARSAYILAN_GUNLER, takvim.VARSAYILAN_SAAT, 1,
+                                     dolu_gunler=takvim.dolu_gunler(plan))
+             or [takvim.simdi() + timedelta(days=1)])[0]
+    z1, z2 = st.columns(2)
+    gun = z1.date_input("Gün", value=oneri.date(), min_value=takvim.simdi().date(),
+                        format="DD.MM.YYYY", key=f"pz_gun_{aid}")
+    saat = z2.time_input("Saat", value=oneri.time(), step=900, key=f"pz_saat_{aid}")
+    kanal = st.selectbox("Nerede paylaşacaksınız?", list(takvim.KANALLAR),
+                         format_func=takvim.KANALLAR.get, key=f"pz_kanal_{aid}")
+    if st.button("📅  Takvimime ekle", use_container_width=True, key=f"pz_ekle_{aid}"):
+        zaman = takvim.zaman_birlestir(gun, saat)
+        if zaman < takvim.simdi():
+            st.warning("Geçmiş bir saat seçtiniz; lütfen ileri bir saat seçin.")
+        else:
+            # Hikâye/WhatsApp metni hazırlandıysa hatırlatmaya o konur, yoksa Instagram metni.
+            metin = ({"instagram": kayit["instagram"], "shopier": kayit["shopier"]}.get(kanal)
+                     or kayit.get("ekler", {}).get(kanal) or kayit["instagram"])
+            plan.append(takvim.PlanOgesi(zaman=zaman.isoformat(), kanal=kanal,
+                                         baslik=takvim.baslik_uret(kayit["anlatim"]),
+                                         metin=metin, icerik_id=aid))
+            st.success(f"Eklendi: {takvim.tarih_etiketi(zaman)}, {zaman:%H:%M}")
+
+    bunlar = [o for o in plan if o.icerik_id == aid and not o.tamam]
+    if bunlar:
+        st.markdown("  \n".join(
+            f"• {takvim.tarih_etiketi(o.zaman_dt())}, {o.zaman_dt():%H:%M} — "
+            f"{takvim.KANALLAR.get(o.kanal, o.kanal)}" for o in takvim.sirali(bunlar)))
+        st.download_button("📲  Telefonumun takvimine ekle", data=takvim.ics_olustur(bunlar),
+                           file_name="uretken_kadin_paylasim.ics", mime="text/calendar",
+                           use_container_width=True, key=f"pz_ics_{aid}")
+        st.caption("İnen dosyaya dokunun; telefonunuz takvime eklemeyi önerir. "
+                   "Tüm planınız için: 🏠 Panom.")
 
 
 # ===========================================================================
@@ -463,7 +571,17 @@ def ekran_sonuc() -> None:
     sonuc = st.session_state.sonuc
     if sonuc is None:
         git("anlat"); return
-    kategori = st.session_state.kategori_key
+    kayit = kayit_bul(st.session_state.aktif_id)
+    if kayit is None:
+        # Önceki sürümden kalan oturum: içeriği bir kayda bağla ki takvim/ekler çalışsın.
+        an = takvim.simdi()
+        kayit = {"id": takvim.yeni_id(), "tarih": an.date().isoformat(),
+                 "saat": an.strftime("%H:%M"), "kategori": st.session_state.kategori_key,
+                 "anlatim": st.session_state.anlatim_metni, "instagram": sonuc.instagram,
+                 "shopier": sonuc.shopier, "ekler": {}}
+        st.session_state.gecmis.insert(0, kayit)
+        st.session_state.aktif_id = kayit["id"]
+    kategori = kayit.get("kategori") or st.session_state.kategori_key
 
     st.markdown('<div class="ekran-baslik">İşte içerikleriniz 🎉</div>',
                 unsafe_allow_html=True)
@@ -491,6 +609,8 @@ def ekran_sonuc() -> None:
         st.code(sh, language=None)
 
     kalite_ipucu(ig, sh, kategori)
+    # Düzeltmeler panoya, takvime ve kayıt dosyasına da yansısın.
+    kayit["instagram"], kayit["shopier"] = ig, sh
 
     b1, b2 = st.columns(2)
     with b1:
@@ -502,31 +622,29 @@ def ekran_sonuc() -> None:
         if st.button("＋  Yeni ürün anlat", use_container_width=True, type="primary"):
             git("anlat")
 
-    # İsteğe bağlı ekstralar
+    paylasim_zamani(kayit)
+
+    # İsteğe bağlı ekstralar — aynı ürün için başka yerlerde kullanılacak metinler
     st.markdown("<div style='height:.6rem'></div>", unsafe_allow_html=True)
-    with st.expander("✨ İsterseniz: video ve fotoğraf yardımı"):
-        e1, e2 = st.columns(2)
-        if e1.button("🎬 Video çekim planı", use_container_width=True):
-            with st.spinner("Çekim planı hazırlanıyor…"):
-                try:
-                    st.session_state.reels = uret.reels_uret(
-                        anlatim=st.session_state.anlatim_metni, kategori=kategori,
-                        ozenli=ozenli,
-                        uslup_ornekleri=st.session_state.uslup_ornekleri or None)
-                except Exception as e:
-                    st.error(f"Hazırlanamadı: {e}")
-        if e2.button("📸 Fotoğraf önerileri", use_container_width=True):
-            with st.spinner("Öneriler hazırlanıyor…"):
-                try:
-                    st.session_state.foto = uret.foto_rehberi_uret(
-                        anlatim=st.session_state.anlatim_metni, kategori=kategori,
-                        ozenli=ozenli)
-                except Exception as e:
-                    st.error(f"Hazırlanamadı: {e}")
-        if st.session_state.get("reels"):
-            st.markdown(st.session_state.reels)
-        if st.session_state.get("foto"):
-            st.markdown(st.session_state.foto)
+    ekler = kayit.setdefault("ekler", {})
+    with st.expander("✨ Diğer formatlar: hikâye, WhatsApp, hashtag, video, fotoğraf",
+                     expanded=bool(ekler)):
+        bicimler = list(EK_ETIKETLER.items())
+        for satir in (bicimler[:3], bicimler[3:]):
+            for kol, (bicim, etiket) in zip(st.columns(len(satir)), satir):
+                if kol.button(etiket, use_container_width=True, key=f"ek_{bicim}"):
+                    ek_uret(bicim, kayit)
+        for bicim in EK_ETIKETLER:
+            if not ekler.get(bicim):
+                continue
+            st.markdown(f'<div class="kart-baslik" style="margin-top:1rem">'
+                        f'{EK_BASLIKLAR[bicim]}</div>', unsafe_allow_html=True)
+            st.markdown(ekler[bicim])
+            if bicim == "hashtag":      # son satır: gönderi için seçilmiş 5 hashtag
+                satirlar = [s.strip() for s in ekler[bicim].splitlines()
+                            if s.strip().startswith("#")]
+                if satirlar:
+                    st.code(satirlar[-1], language=None)
 
     st.markdown('<div class="ifsa">Bu içerik yapay zekâ yardımıyla hazırlandı · '
                 'paylaşmadan önce okuyun — son karar sizindir.</div>',
@@ -534,28 +652,213 @@ def ekran_sonuc() -> None:
 
 
 # ===========================================================================
-# EKRAN: İÇERİKLERİM
+# EKRAN: PANOM — özet, paylaşım takvimi, içerikler, kaydet / yükle
 # ===========================================================================
-def ekran_iceriklerim() -> None:
+def _plan_tamam(oge_id: str) -> None:
+    for o in st.session_state.plan:
+        if o.id == oge_id:
+            o.tamam = st.session_state[f"tamam_{oge_id}"]
+
+
+def _plan_sil(oge_id: str) -> None:
+    st.session_state.plan = [o for o in st.session_state.plan if o.id != oge_id]
+
+
+def _plan_ertele(oge_id: str) -> None:
+    """Zamanı geçen paylaşımı aynı saatle yarına alır."""
+    yarin = takvim.simdi().date() + timedelta(days=1)
+    for o in st.session_state.plan:
+        if o.id == oge_id:
+            o.zaman = takvim.zaman_birlestir(yarin, o.zaman_dt().time()).isoformat()
+
+
+def _icerik_sil(kayit_id: str) -> None:
+    st.session_state.gecmis = [k for k in st.session_state.gecmis if k.get("id") != kayit_id]
+    st.session_state.plan = [o for o in st.session_state.plan if o.icerik_id != kayit_id]
+    if st.session_state.aktif_id == kayit_id:
+        st.session_state.sonuc = st.session_state.aktif_id = None
+
+
+def _icerik_ac(kayit: dict) -> None:
+    st.session_state.sonuc = uret.Icerik(instagram=kayit["instagram"], shopier=kayit["shopier"])
+    st.session_state.aktif_id = kayit["id"]
+    st.session_state.ozenli_istendi = False
+    st.session_state.anlatim_metni = kayit["anlatim"]
+    if kayit.get("kategori") in prompts.KATEGORI_KELIMELERI:
+        st.session_state.kategori_key = kayit["kategori"]
+    git("sonuc")
+
+
+def _plan_satiri(o: takvim.PlanOgesi, gecen: bool = False) -> None:
+    z = o.zaman_dt()
+    isaret = "✅ " if o.tamam else ("⏰ " if gecen else "")
+    ne_zaman = takvim.kisa_etiket(z) if (gecen or o.tamam) else f"{z:%H:%M}"
+    with st.expander(f"{isaret}{ne_zaman} · {takvim.KANALLAR.get(o.kanal, o.kanal)} · "
+                     f"{o.baslik}"):
+        if o.metin:
+            st.code(o.metin, language=None, wrap_lines=True)
+        k1, k2, k3 = st.columns([1.3, 1, 0.8])
+        k1.checkbox("Paylaştım", value=o.tamam, key=f"tamam_{o.id}",
+                    on_change=_plan_tamam, args=(o.id,))
+        if gecen:
+            k2.button("Yarına al", key=f"ertele_{o.id}", on_click=_plan_ertele,
+                      args=(o.id,), use_container_width=True)
+        k3.button("Sil", key=f"sil_{o.id}", on_click=_plan_sil, args=(o.id,),
+                  use_container_width=True)
+
+
+def _pano_takvim(an) -> None:
+    gecmis, plan = st.session_state.gecmis, st.session_state.plan
+    bekleyen = takvim.planlanmamis(gecmis, plan)
+    if bekleyen:
+        st.markdown(f"**{len(bekleyen)} içeriğiniz henüz takvimde değil.** "
+                    "Hangi günler paylaşmak istersiniz?")
+        gunler = st.pills("Günler", takvim.GUN_KISA, selection_mode="multi",
+                          default=[takvim.GUN_KISA[i] for i in takvim.VARSAYILAN_GUNLER],
+                          label_visibility="collapsed", key="oner_gunler")
+        saat = st.time_input("Saat", value=takvim.VARSAYILAN_SAAT, step=900, key="oner_saat")
+        st.caption("20:00 yalnızca bir başlangıç önerisidir. Takipçilerinizin en çok ne "
+                   "zaman çevrimiçi olduğunu Instagram profesyonel hesabınızın "
+                   "istatistiklerinden görüp saati ona göre değiştirebilirsiniz.")
+        if st.button(f"✨  {len(bekleyen)} içeriği takvime yerleştir", type="primary",
+                     use_container_width=True, key="oner_btn"):
+            if not gunler:
+                st.warning("En az bir gün seçin.")
+            else:
+                yeni = takvim.plan_oner(gecmis, plan,
+                                        [takvim.GUN_KISA.index(g) for g in gunler], saat)
+                st.session_state.plan = plan + yeni
+                st.session_state.pano_mesaj = f"{len(yeni)} paylaşım takvime eklendi."
+                st.rerun()
+        st.divider()
+
+    if not plan:
+        st.info("Takviminiz boş. İçeriklerinizi yukarıdan ya da sonuç ekranından "
+                "takvime ekleyebilirsiniz.")
+        return
+    gruplar = takvim.ayir(plan, an)
+    if gruplar["yaklasan"]:
+        st.download_button("📲  Yaklaşan paylaşımları telefon takvimime ekle",
+                           data=takvim.ics_olustur(gruplar["yaklasan"]),
+                           file_name="uretken_kadin_takvim.ics", mime="text/calendar",
+                           use_container_width=True, key="ics_hepsi")
+        st.caption(f"İnen dosyaya dokunun; telefonunuz takvime eklemeyi önerir ve her "
+                   f"paylaşımdan {takvim.HATIRLATMA_DK} dakika önce hatırlatır. Google "
+                   "Takvim'e bilgisayardan Ayarlar → İçe aktar ile de ekleyebilirsiniz.")
+        for _, ogeler in takvim.gune_gore(gruplar["yaklasan"]):
+            st.markdown(f'<div class="gun-baslik">'
+                        f'{html.escape(takvim.tarih_etiketi(ogeler[0].zaman_dt()))}</div>',
+                        unsafe_allow_html=True)
+            for o in ogeler:
+                _plan_satiri(o)
+    else:
+        st.info("Yaklaşan paylaşım yok.")
+    if gruplar["gecen"]:
+        st.markdown('<div class="gun-baslik">⏰ Zamanı geçenler</div>', unsafe_allow_html=True)
+        for o in gruplar["gecen"]:
+            _plan_satiri(o, gecen=True)
+    if gruplar["tamam"] and st.toggle(f"✅ Paylaştıklarınızı göster ({len(gruplar['tamam'])})",
+                                      key="tamam_goster"):
+        for o in reversed(gruplar["tamam"]):
+            _plan_satiri(o)
+
+
+def _pano_icerikler() -> None:
+    gecmis, plan = st.session_state.gecmis, st.session_state.plan
+    if not gecmis:
+        st.info("Bu oturumda hazırlanmış içerik yok.")
+        return
+    for kayit in gecmis:
+        planli = takvim.sirali([o for o in plan if o.icerik_id == kayit["id"]])
+        durum = f"📅 {takvim.kisa_etiket(planli[0].zaman_dt())}" if planli else "planlanmadı"
+        with st.expander(f"{takvim.baslik_uret(kayit['anlatim'])} · {durum}"):
+            st.markdown("**📱 Instagram**")
+            st.write(kayit["instagram"])
+            st.markdown("**🛍️ Shopier**")
+            st.write(kayit["shopier"])
+            hazir = [EK_BASLIKLAR[b] for b in kayit.get("ekler", {}) if b in EK_BASLIKLAR]
+            if hazir:
+                st.caption("Hazır ek formatlar: " + ", ".join(hazir))
+            a1, a2 = st.columns([1.6, 1])
+            if a1.button("✏️ Aç ve düzenle", key=f"ac_{kayit['id']}", use_container_width=True):
+                _icerik_ac(kayit)
+            a2.button("Sil", key=f"icsil_{kayit['id']}", on_click=_icerik_sil,
+                      args=(kayit["id"],), use_container_width=True)
+
+
+def _plan_kaydet() -> None:
+    st.caption("🔒 " + kvkk.KAYIT_ACIKLAMA)
+    uslup_dahil = bool(st.session_state.uslup_ornekleri) and st.checkbox(
+        "Ton profilimi de kaydet", value=True, key="kayit_uslup")
+    veri = takvim.disa_aktar(st.session_state.gecmis, st.session_state.plan,
+                             st.session_state.uslup_ornekleri if uslup_dahil else None)
+    st.download_button("💾  Planımı kaydet", data=veri.encode("utf-8"),
+                       file_name=f"uretken_kadin_planim_{takvim.simdi():%Y-%m-%d}.json",
+                       mime="application/json", use_container_width=True, key="kayit_indir")
+
+
+def _plan_yukle() -> None:
+    dosya = st.file_uploader("Kayıtlı plan dosyanızı seçin (.json)", type=["json"],
+                             key="kayit_dosya")
+    if dosya is not None and st.button("📂  Yükle", use_container_width=True,
+                                       key="kayit_yukle"):
+        try:
+            icerikler, plan, uslup, uyarilar = takvim.ice_aktar(dosya.getvalue())
+        except ValueError as e:
+            st.error(str(e))
+            return
+        st.session_state.gecmis, n_icerik = takvim.birlestir(st.session_state.gecmis, icerikler)
+        st.session_state.plan, n_plan = takvim.birlestir(st.session_state.plan, plan)
+        if uslup and not st.session_state.uslup_ornekleri:
+            st.session_state.uslup_ornekleri = uslup
+        st.session_state.pano_mesaj = " ".join(
+            [f"Yüklendi: {n_icerik} içerik, {n_plan} paylaşım."] + uyarilar)
+        st.rerun()
+
+
+def ekran_pano() -> None:
     ust_bar()
-    st.markdown('<div class="ekran-baslik">İçerikleriniz</div>', unsafe_allow_html=True)
-    if not st.session_state.gecmis:
-        st.markdown('<div class="bos"><div class="ik">📁</div>'
-                    '<p>Henüz içerik hazırlamadınız.</p></div>', unsafe_allow_html=True)
+    gecmis, plan = st.session_state.gecmis, st.session_state.plan
+    an = takvim.simdi()
+    st.markdown('<div class="ekran-baslik">Panonuz</div>', unsafe_allow_html=True)
+    if st.session_state.pano_mesaj:
+        st.success(st.session_state.pano_mesaj)
+        st.session_state.pano_mesaj = None
+
+    if not gecmis and not plan:
+        st.markdown('<div class="bos"><div class="ik">🏠</div><p>Henüz içerik yok.<br>'
+                    'İlk ürününüzü anlatın ya da daha önce kaydettiğiniz planı '
+                    'yükleyin.</p></div>', unsafe_allow_html=True)
         if st.button("İlk içeriğimi hazırlayayım  →", use_container_width=True, type="primary"):
             git("anlat")
+        st.markdown("**📂 Kayıtlı planımı yükle**")
+        _plan_yukle()
         return
-    st.markdown('<div class="ekran-alt">Bu oturumda hazırladıklarınız. '
-                '(Sayfayı kapatınca sıfırlanır.)</div>', unsafe_allow_html=True)
-    for kayit in st.session_state.gecmis:
-        baslik = kayit["anlatim"][:60].replace("\n", " ")
-        with st.expander(f"{kayit['saat']} · {baslik}…"):
-            g1, g2 = st.columns(2)
-            g1.markdown("**📱 Instagram**"); g1.write(kayit["instagram"])
-            g2.markdown("**🛍️ Shopier**"); g2.write(kayit["shopier"])
-    if st.button("Geçmişi temizle", use_container_width=True):
-        st.session_state.gecmis = []
-        st.rerun()
+
+    st.markdown('<div class="ekran-alt">İçerikleriniz ve paylaşım takviminiz tek yerde. '
+                'Sayfayı kapatınca sıfırlanır — saklamak için “Kaydet / yükle”.</div>',
+                unsafe_allow_html=True)
+    sira = takvim.siradaki(plan, an)
+    paylasilan = sum(o.tamam for o in plan)
+    kutular = [(len(gecmis), "hazır içerik"),
+               (len(takvim.onumuzdeki_gunler(plan, 7, an)), "paylaşım bu hafta"),
+               (takvim.kisa_etiket(sira.zaman_dt()) if sira else "—", "sıradaki paylaşım")]
+    st.markdown('<div class="ozet">' + "".join(
+        f'<div class="kutu"><div class="deger">{html.escape(str(d))}</div>'
+        f'<div class="etiket">{e}</div></div>' for d, e in kutular) + '</div>',
+        unsafe_allow_html=True)
+    if plan:
+        st.progress(paylasilan / len(plan), text=f"Paylaştıklarınız: {paylasilan}/{len(plan)}")
+
+    t_takvim, t_icerik, t_kayit = st.tabs(["📅 Takvimim", "📝 İçeriklerim", "💾 Kaydet / yükle"])
+    with t_takvim:
+        _pano_takvim(an)
+    with t_icerik:
+        _pano_icerikler()
+    with t_kayit:
+        _plan_kaydet()
+        st.divider()
+        _plan_yukle()
 
 
 # ===========================================================================
@@ -764,8 +1067,8 @@ else:
         ekran_anlat()
     elif ekran == "sonuc":
         ekran_sonuc()
-    elif ekran == "iceriklerim":
-        ekran_iceriklerim()
+    elif ekran in ("pano", "iceriklerim"):      # eski bağlantılar da panoya açılsın
+        ekran_pano()
     elif ekran == "ton":
         ekran_ton()
     elif ekran == "yardim":

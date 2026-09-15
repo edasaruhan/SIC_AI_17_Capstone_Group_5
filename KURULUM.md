@@ -85,6 +85,8 @@ Tarayıcıda otomatik açılır (`http://localhost:8501`).
 |---|---|
 | `src/prompts.py` | Prompt şablonları (zero-shot / few-shot / chain-of-thought) ve etik kısıtlar |
 | `src/uret.py` | Gemini çağrısı, çıktının iki kanala ayrıştırılması, SEO kapsam ölçümü |
-| `src/app.py` | Streamlit arayüzü — gir, üret, düzenle, onayla |
+| `src/app.py` | Streamlit arayüzü — gir, üret, düzenle, onayla, planla |
+| `src/takvim.py` | İçerik takvimi: paylaşım günü önerisi, telefon takvimi (.ics), kaydet/yükle |
+| `tests/` | API anahtarı gerektirmeyen testler: `python tests/test_takvim.py`, `python tests/test_hashtag.py` |
 | `data/ornekler.csv` | Test için 10 örnek ürün anlatımı |
 | `.env` | API anahtarınız (GitHub'a gitmez) |

@@ -40,6 +40,12 @@ METIN_AYDINLATMA = ("Yazdığınız anlatım, içerik üretmek için Google Gemi
                     "gönderilir (yurt dışına aktarım). Kişisel/hassas bilgi "
                     "(ad-soyad, adres, telefon) yazmayın — buna gerek yok.")
 
+# Pano → Kaydet / yükle bölümünde gösterilir
+KAYIT_ACIKLAMA = ("Planınız sunucumuzda saklanmaz. Kaydettiğiniz dosya yalnızca sizin "
+                  "cihazınıza iner; bir dahaki sefere buradan yükleyip kaldığınız yerden "
+                  "devam edersiniz. Dosyada anlatımlarınız ve içerikleriniz bulunur — "
+                  "başkalarıyla paylaşmayın.")
+
 # Ayrıntılı politika (Etik/KVKK sekmesinde gösterilir)
 POLITIKA_MADDELERI = [
     ("Hangi veriyi işliyoruz?",
@@ -52,8 +58,9 @@ POLITIKA_MADDELERI = [
      "İçerik üretimi Google Gemini API üzerinden yapılır; bu, KVKK m.9 kapsamında "
      "yurt dışına veri aktarımı anlamına gelir. Bu yüzden ses için açık rıza alırız."),
     ("Ne kadar saklıyoruz?",
-     "Anlatımınız ve üretilen içerik yalnızca oturum boyunca bellekte tutulur; "
-     "sayfayı kapatınca silinir. Sunucumuzda kalıcı kayıt tutulmaz."),
+     "Anlatımınız, üretilen içerik ve paylaşım takviminiz yalnızca oturum boyunca "
+     "bellekte tutulur; sayfayı kapatınca silinir. Sunucumuzda kalıcı kayıt tutulmaz. "
+     "Planınızı saklamak isterseniz \"Kaydet\" dosyası yalnızca sizin cihazınıza iner."),
     ("Haklarınız",
      "KVKK m.11 kapsamında verinize erişme, düzeltme ve silinmesini isteme "
      "haklarınız vardır. Sesli anlatımı hiç kullanmama seçeneğiniz her zaman açıktır."),

@@ -261,6 +261,108 @@ Kısıtlar:
 
 
 # ---------------------------------------------------------------------------
+# 7) EK FORMATLAR — Instagram hikâyesi, WhatsApp, hashtag seti
+# ---------------------------------------------------------------------------
+_EK_GOREVLER = {
+    "story": """Bu kez görevin farklı: Instagram HİKÂYESİ (story) için 3 karelik bir dizi
+hazırlayacaksın.
+
+Kısıtlar:
+- Her karedeki ekran yazısı en fazla 8 kelime olsun; hikâyede uzun yazı okunmaz.
+- Görüntüler, üreticinin telefonuyla evinde çekebileceği şeyler olsun.
+- Fiyat, indirim, kargo süresi gibi anlatımda OLMAYAN bilgileri yazma.
+- Son karedeki soru, anlatımda olmayan bir seçenek (renk, beden, çeşit) varmış gibi
+  sormasın; ürünün kendisi ya da kullanımı hakkında olsun.""",
+
+    "whatsapp": """Bu kez görevin farklı: üreticinin WhatsApp'ta kullanacağı iki kısa metin
+hazırlayacaksın.
+
+Kısıtlar:
+- WhatsApp'ta insanlar tanıdıklarıyla yazışır: resmi değil, samimi ve kısa yaz.
+- Fiyat anlatımda yoksa fiyat YAZMA; yerine [fiyat] yaz ki üretici kendisi doldursun.
+- Kargo, teslim süresi, indirim gibi anlatımda OLMAYAN bilgileri ekleme.""",
+
+    "hashtag": """Bu kez görevin farklı: Instagram için HASHTAG SETİ hazırlayacaksın.
+
+Kısıtlar:
+- Hashtag'ler boşluksuz ve küçük harf olsun.
+- Kelimelerin Türkçe yazımını AYNEN koru; yalnızca boşlukları kaldır (el örgüsü →
+  #elörgüsü, el emeği → #elemeği). Harf ekleme, çıkarma ya da değiştirme; ğ, ü, ş, ı,
+  ö, ç harflerini olduğu gibi bırak.
+- Her hashtag tek bir kavram olsun; kelimeleri zincirleme birleştirme
+  (#elörgüsübebekbattaniyesi değil, #elörgüsü #bebekbattaniyesi).
+- "Göz nuru", "sevgiyle" gibi yasak kalıpları hashtag olarak da kullanma.
+- Anlatımda olmayan bir özelliği hashtag yapma (ürün organik denmediyse #organik YAZMA).
+- "#eniyi", "#mucize", "#şifalı", "#garantili" gibi iddia taşıyan etiket kullanma.
+- Üretici bir şehir ya da yöre söylemediyse yer adı hashtag'i UYDURMA.""",
+}
+
+_EK_CIKTILAR = {
+    "story": """**1. kare — merak**
+🖼️ Görüntü: …
+✍️ Ekrandaki yazı: …
+
+**2. kare — emek**
+🖼️ Görüntü: …
+✍️ Ekrandaki yazı: …
+
+**3. kare — soru**
+🖼️ Görüntü: …
+✍️ Ekrandaki yazı: …
+🗳️ Etkileşim çıkartması: (anket ya da soru kutusuna yazılacak tek soru)""",
+
+    "whatsapp": """**💬 Durum yazısı**
+(Ürün fotoğrafının altına, en fazla 2 kısa cümle)
+
+**📩 Soran müşteriye mesaj**
+(Ürünü soran birine gönderilecek 3-4 kısa satır: ne olduğu, nasıl yapıldığı,
+[fiyat], sipariş için ne yapması gerektiği)""",
+
+    "hashtag": """**🧶 Ürünü anlatan**
+(4-5 hashtag, tek satırda)
+
+**🔎 Arayanların yazdığı**
+(4-5 hashtag, tek satırda)
+
+**🤝 Topluluk**
+(2-3 hashtag — el emeğiyle üretim yapanların ortak etiketleri)
+
+**📋 Bu gönderi için en iyi 5**
+(Yukarıdakilerden seçilmiş 5 hashtag, kopyalamak için tek satırda)""",
+}
+
+EK_BICIMLER = tuple(_EK_GOREVLER)
+
+
+def ek_format(anlatim: str, kategori: str, bicim: str,
+              anahtar_kelimeler: list[str] | None = None,
+              uslup_ornekleri: list[str] | None = None) -> str:
+    """Instagram hikâyesi / WhatsApp / hashtag seti prompt'u. Etik kurallar ortaktır."""
+    if bicim not in _EK_GOREVLER:
+        raise ValueError(f"Bilinmeyen biçim: {bicim}")
+    kelimeler = ""
+    if bicim == "hashtag" and anahtar_kelimeler:
+        kelimeler = ("\nARAMA VERİSİNDEN GELEN ANAHTAR KELİMELER: "
+                     f"{', '.join(anahtar_kelimeler)}\n"
+                     "Bunlardan ürüne GERÇEKTEN uyanları boşluksuz hashtag'e çevirip "
+                     "'Arayanların yazdığı' grubunda kullan; uymayanı kullanma. Kelimedeki "
+                     "malzeme anlatımda geçmiyorsa o kelime uymaz (örn. ürün iplikten "
+                     "örülüyorsa 'doğal kumaş' uymaz).\n")
+    return f"""{SISTEM_TALIMATI}
+
+{_EK_GOREVLER[bicim]}
+
+ÜRÜN KATEGORİSİ: {kategori}
+{kelimeler}{uslup_blogu(uslup_ornekleri)}
+ÜRETİCİNİN KENDİ ANLATIMI:
+\"\"\"{anlatim}\"\"\"
+
+Çıktıyı tam olarak şu Markdown biçiminde ver, başka açıklama ekleme:
+
+{_EK_CIKTILAR[bicim]}"""
+
+
+# ---------------------------------------------------------------------------
 # Yardımcılar
 # ---------------------------------------------------------------------------
 def uslup_blogu(uslup_ornekleri: list[str] | None) -> str:

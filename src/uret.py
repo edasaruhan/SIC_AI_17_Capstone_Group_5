@@ -256,6 +256,75 @@ def foto_rehberi_uret(anlatim: str, kategori: str, ozenli: bool = False,
                          zaman_asimi_sn=OZENLI_ZAMAN_ASIMI_SN)[0]
 
 
+def ek_format_uret(anlatim: str, kategori: str, bicim: str,
+                   uslup_ornekleri: list[str] | None = None,
+                   trends_kullan: bool = True, ozenli: bool = False,
+                   client: genai.Client | None = None) -> str:
+    """
+    Ek formatlar (Markdown): "story" (3 karelik hikâye), "whatsapp" (durum + müşteri
+    mesajı), "hashtag" (gruplanmış hashtag seti; arama kelimeleriyle beslenir).
+    """
+    if bicim not in prompts.EK_BICIMLER:
+        raise ValueError(f"Bilinmeyen biçim: {bicim}")
+    if not anlatim or not anlatim.strip():
+        raise ValueError("Anlatım boş olamaz.")
+    kelimeler = None
+    if bicim == "hashtag":
+        if trends_kullan:
+            import trends
+            kelimeler = trends.anahtar_kelimeler(kategori)
+        else:
+            kelimeler = prompts.KATEGORI_KELIMELERI.get(kategori, [])
+    prompt = prompts.ek_format(anlatim=anlatim, kategori=kategori, bicim=bicim,
+                               anahtar_kelimeler=kelimeler,
+                               uslup_ornekleri=uslup_ornekleri)
+    client = client or istemci_olustur()
+    metin = _modelle_uret(client, model_sec(ozenli), prompt,
+                          zaman_asimi_sn=OZENLI_ZAMAN_ASIMI_SN)[0]
+    if bicim == "hashtag":
+        metin, _ = hashtag_denetle(metin, anlatim)
+    return metin
+
+
+# Hashtag'de geçip anlatımda geçmiyorsa üründe olmayan bir özelliği iddia eden kökler.
+_KANIT_ISTEYEN_KOKLER = ("organik", "doğal", "katkı", "kumaş", "ipek", "gümüş", "altın",
+                         "deri", "yün", "pamuk", "keten", "bambu", "vegan", "glutensiz")
+# Anlatımda geçse bile hashtag yapılmayan iddia ve klişe kökleri.
+_YASAK_HASHTAG_KOKLERI = ("mucize", "şifa", "garanti", "eniyi", "göznuru", "sevgiyle",
+                          "birebir", "tedavi")
+
+
+def _tr_kucuk(metin: str) -> str:
+    """Türkçe küçük harf: 'İ' → 'i', 'I' → 'ı' (str.lower bunları bozar)."""
+    return metin.replace("I", "ı").replace("İ", "i").lower()
+
+
+def hashtag_denetle(metin: str, anlatim: str) -> tuple[str, list[str]]:
+    """
+    Hashtag'leri etik kurallara göre deterministik olarak süzer.
+
+    Prompt kuralları olasılıksaldır: canlı testte kumaş olmayan bir ürüne #doğalkumaş,
+    yasak klişeden #elemekgöznuru üretildi. Bu süzgeç iddia/klişe köklerini her zaman,
+    malzeme/özellik köklerini ise anlatımda geçmiyorsa çıkarır.
+    Döndürür: (temiz metin, çıkarılan etiketler).
+    """
+    kaynak = _tr_kucuk(anlatim)
+    cikan: list[str] = []
+
+    def suz(eslesme: re.Match) -> str:
+        etiket = _tr_kucuk(eslesme.group(0))
+        uygun = (not any(y in etiket for y in _YASAK_HASHTAG_KOKLERI)
+                 and all(k in kaynak for k in _KANIT_ISTEYEN_KOKLER if k in etiket))
+        if uygun:
+            return eslesme.group(0)
+        cikan.append(eslesme.group(0))
+        return ""
+
+    temiz = re.sub(r"#\w+", suz, metin)
+    temiz = "\n".join(re.sub(r"[ \t]{2,}", " ", s).strip() for s in temiz.splitlines())
+    return temiz, list(dict.fromkeys(cikan))
+
+
 def seo_kapsami(metin: str, anahtar_kelimeler: list[str]) -> int:
     """Üretilen metinde kaç anahtar kelimenin geçtiğini sayar (KPI ölçümü)."""
     kucuk = metin.lower()

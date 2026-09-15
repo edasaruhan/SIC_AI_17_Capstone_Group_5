@@ -23,6 +23,10 @@ uyumlu, çok kanallı pazarlama içeriğine** (Instagram gönderisi + Shopier a�
 | 🔎 **Google Trends / SEO** | Anahtar kelimeler artık elle sabit değil; **canlı Google Trends** verisinden çekilir (ulaşılamazsa güvenli sabit listeye düşer). |
 | 🤖 **İçerik kalite modeli** | Taslağın "onaya hazır" mı "revizyon gerek" mi olduğunu kestiren sınıflandırıcı — üreticinin inceleme yükünü azaltan **HITL ön-filtresi**. |
 | 🎬 **Reels & fotoğraf** | Telefonla tek başına çekilebilecek Reels senaryosu ve ürüne özel fotoğraf rehberi. |
+| 🟣 **Hikâye, WhatsApp, hashtag** | Aynı üründen 3 karelik Instagram hikâyesi, WhatsApp durum/müşteri mesajı ve gruplanmış hashtag seti. Hashtag'ler ayrıca kural tabanlı süzgeçten geçer: anlatımda olmayan malzeme ya da iddia (#doğalkumaş, #mucize…) çıkarılır. |
+| 📅 **İçerik takvimi** | "Ne zaman paylaşacaksınız?" → seçilen günlere otomatik yerleşim; **telefon takvimine eklenen .ics** dosyası paylaşımdan 30 dk önce hatırlatır, metin hatırlatmanın içindedir. |
+| 🏠 **Pano** | Hazır içerik, bu haftaki paylaşımlar, sıradaki paylaşım; "paylaştım" işareti, zamanı geçeni yarına alma. |
+| 💾 **Kaydet / yükle** | Plan sunucuda saklanmaz (KVKK); kullanıcı dosyayı kendi cihazına kaydedip sonra geri yükler. |
 | 🎨 **Ton profili** | Üretici kendi eski metinlerini yapıştırır; model onun üslubuyla yazar. |
 | ⚖️ **Prompt karşılaştırma** | zero-shot / few-shot / chain-of-thought çıktıları yan yana (rapor kanıtı). |
 | 📦 **Toplu üretim** | CSV yükle → tüm ürünler için tek seferde içerik. |
@@ -85,6 +89,13 @@ python src/toplu_test.py           # 10 örnek, few_shot
 python src/toplu_test.py --hepsi   # üç tekniği de çalıştır (karşılaştırma)
 ```
 
+### Birim testleri (API anahtarı gerektirmez)
+
+```bash
+python tests/test_takvim.py        # planlama, .ics, kaydet/yükle doğrulaması
+python tests/test_hashtag.py       # hashtag etik süzgeci
+```
+
 ---
 
 ## 📁 Proje yapısı
@@ -92,8 +103,9 @@ python src/toplu_test.py --hepsi   # üç tekniği de çalıştır (karşılaşt
 ```
 Uretken_Kadin/
 ├── src/
-│   ├── app.py               # Streamlit arayüzü (8 sekme, HITL akışı)
-│   ├── uret.py              # Çekirdek: Gemini üretimi, STT, metrikler
+│   ├── app.py               # Streamlit arayüzü (adım adım akış, pano, geliştirici modu)
+│   ├── uret.py              # Çekirdek: Gemini üretimi, STT, ek formatlar, metrikler
+│   ├── takvim.py            # İçerik takvimi: planlama, .ics, kaydet/yükle
 │   ├── prompts.py           # Prompt şablonları + etik kısıtlar + ton profili
 │   ├── trends.py            # Google Trends (pytrends) SEO kelime entegrasyonu
 │   ├── kalite.py            # İçerik kalite modeli: öznitelikler + çıkarım
@@ -106,6 +118,7 @@ Uretken_Kadin/
 │   ├── kalite_etiketli.csv  # (üretilir) kalite modeli veri seti
 │   └── trends_onbellek.json # (üretilir) Trends önbelleği
 ├── models/                  # (üretilir) eğitilmiş kalite modeli
+├── tests/                   # API gerektirmeyen birim testleri
 ├── ciktilar/                # toplu test + model çıktıları (kanıt)
 ├── requirements.txt
 ├── KURULUM.md               # ayrıntılı kurulum
