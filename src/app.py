@@ -35,11 +35,13 @@ st.set_page_config(page_title="Üretken Kadın — Emeğin dijital sesi",
 
 # Streamlit Cloud'da API anahtarı "secret" olarak gelir; uret.py os.getenv okur.
 try:
-    for _a in ("GEMINI_API_KEY", "GEMINI_MODEL"):
+    for _a in ("GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_MODEL_OZENLI", "GEMINI_MODEL_SES"):
         if _a in st.secrets:
             os.environ.setdefault(_a, str(st.secrets[_a]))
 except Exception:
     pass
+# uret.py model adlarını import anında okur; secrets sonradan geldiği için tazele.
+uret.modelleri_yenile()
 
 ANA = "#9B3D63"; KOYU = "#4A2138"; SAGE = "#6E8F77"
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -123,6 +125,9 @@ with st.sidebar:
     st.markdown("### Ayarlar")
     buyuk_yazi = st.toggle("Büyük yazı modu", value=False,
                            help="Tüm yazıları büyütür — okuması zor gelenler için.")
+    ozenli = st.toggle("Daha özenli yaz", value=False,
+                       help="İçerikler biraz daha yavaş hazırlanır ama daha özenli "
+                            "yazılır. Kapalıyken birkaç saniyede hazır olur.")
     st.divider()
     st.caption("Ton profiliniz")
     if st.session_state.uslup_ornekleri:
@@ -166,7 +171,8 @@ html {{ font-size:{TABAN}; }}
 .stApp p, .stApp li {{ line-height:1.65; }}
 h1,h2,h3,h4,.marka,.dev-baslik {{ font-family:'Lexend','Source Sans 3',sans-serif; }}
 [data-testid="stHeader"] {{ background:transparent; height:0; }}
-#MainMenu, footer, [data-testid="stToolbar"] {{ display:none !important; }}
+/* Araç çubuğu açık kalır: kenar çubuğunu açan ok onun içinde. Yalnız menü ve Deploy gizli. */
+#MainMenu, footer, [data-testid="stMainMenu"], [data-testid="stAppDeployButton"] {{ display:none !important; }}
 .block-container {{ padding-top:1.2rem; padding-bottom:3.5rem; max-width:760px; }}
 .kart p,.hero p {{ overflow-wrap:anywhere; }}
 a {{ color:var(--primary); }}
@@ -435,9 +441,10 @@ def ekran_anlat() -> None:
                 try:
                     sonuc = uret.icerik_uret(
                         anlatim=anlatim, kategori=st.session_state.kategori_key,
-                        ton="sıcak ve samimi", teknik="few_shot",
+                        ton="sıcak ve samimi", teknik="few_shot", ozenli=ozenli,
                         uslup_ornekleri=st.session_state.uslup_ornekleri or None)
                     st.session_state.sonuc = sonuc
+                    st.session_state.ozenli_istendi = ozenli
                     st.session_state.reels = st.session_state.foto = None
                     st.session_state.gecmis.insert(0, {
                         "saat": datetime.now().strftime("%H:%M"),
@@ -463,6 +470,11 @@ def ekran_sonuc() -> None:
     st.markdown('<div class="ekran-alt">Beğenmediğiniz yeri doğrudan '
                 'düzeltebilirsiniz. Hazır olunca kopyalayıp paylaşın.</div>',
                 unsafe_allow_html=True)
+    # Özenli yazım istendi ama o model yoğun/yavaş olduğu için hızlı modele geçildiyse söyle.
+    if (st.session_state.get("ozenli_istendi") and sonuc.model
+            and sonuc.model != uret.MODEL_OZENLI):
+        st.info("Özenli yazım şu an yoğun olduğu için içeriğiniz hızlı yöntemle "
+                "hazırlandı. İsterseniz biraz sonra tekrar deneyebilirsiniz.")
 
     st.markdown('<div class="kart-baslik">📱 Instagram gönderiniz</div>',
                 unsafe_allow_html=True)
@@ -499,6 +511,7 @@ def ekran_sonuc() -> None:
                 try:
                     st.session_state.reels = uret.reels_uret(
                         anlatim=st.session_state.anlatim_metni, kategori=kategori,
+                        ozenli=ozenli,
                         uslup_ornekleri=st.session_state.uslup_ornekleri or None)
                 except Exception as e:
                     st.error(f"Hazırlanamadı: {e}")
@@ -506,7 +519,8 @@ def ekran_sonuc() -> None:
             with st.spinner("Öneriler hazırlanıyor…"):
                 try:
                     st.session_state.foto = uret.foto_rehberi_uret(
-                        anlatim=st.session_state.anlatim_metni, kategori=kategori)
+                        anlatim=st.session_state.anlatim_metni, kategori=kategori,
+                        ozenli=ozenli)
                 except Exception as e:
                     st.error(f"Hazırlanamadı: {e}")
         if st.session_state.get("reels"):

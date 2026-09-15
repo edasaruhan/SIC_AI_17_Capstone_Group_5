@@ -64,6 +64,7 @@ def tek_ornek_calistir(client, satir: dict, teknik: str,
                 kategori=kategori,
                 teknik=teknik,
                 trends_kullan=False,   # test metrikleri sabit kelime setiyle ölçülür
+                yedek_model=False,     # ölçülen model değişmesin (yedeğe geçiş kapalı)
                 client=client,
             )
             break                              # basarili, donguden cik

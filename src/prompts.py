@@ -174,6 +174,9 @@ Kaydı Türkçe olarak yazıya dök. Kurallar:
   güzelleştirmeye veya kısaltmaya çalışma.
 - Yalnızca "ııı", "şey", "yani bir de" gibi anlamsız doldurma seslerini at ve
   cümleleri noktalama ile düzenle.
+- Kişi eklerini aynen koru: "kendim", "örüyorum", "bahçemizin" gibi kelimeleri
+  değiştirme — üreticinin emeğini anlatan kısım tam olarak bunlardır.
+- Sayıları söylendiği gibi yazıyla bırak ("yirmi gün", "üç günümü"); rakama çevirme.
 - Duymadığın hiçbir bilgiyi EKLEME. Anlaşılmayan yeri [anlaşılmadı] diye işaretle.
 - Yalnızca metni yaz; başlık, açıklama veya yorum ekleme."""
 
@@ -289,8 +292,11 @@ def _kelime_blogu(anahtar_kelimeler) -> str:
         return ""
     kelimeler = ", ".join(anahtar_kelimeler)
     return (f"\nARAMA VERİSİNDEN GELEN ANAHTAR KELİMELER: {kelimeler}\n"
-            "Bu kelimeleri metne DOĞAL biçimde yerleştir. Zorlama, listeleme, "
-            "art arda dizme. Cümle akışını bozuyorsa kullanma.\n")
+            "Önce bu kelimelerden ürüne GERÇEKTEN uyanları seç. Uymayanı hiç kullanma "
+            "(örn. ürün kumaş değilse 'doğal kumaş' yazma).\n"
+            "Uyan kelimelerin HEPSİNİ [SHOPIER] metninde, Instagram metninde ise en az "
+            "birini DOĞAL biçimde kullan — insanların arama kutusuna yazdığı biçimiyle.\n"
+            "Zorlama, listeleme, art arda dizme; cümle akışı bozulmasın.\n")
 
 
 # Ton profili için başlangıç örnekleri.

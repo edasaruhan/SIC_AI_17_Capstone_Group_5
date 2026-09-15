@@ -21,10 +21,33 @@ import prompts
 
 load_dotenv()
 
-# Kullanilacak model. Google zaman zaman eski modelleri yeni kullanicilara kapatiyor;
-# "404 ... no longer available" hatasi alirsaniz hata mesajinin onerdigi model adini
-# buraya yazin. Model adi .env icinden de GEMINI_MODEL ile degistirilebilir.
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+# Kullanilacak modeller (.env veya Streamlit secrets ile degistirilebilir).
+# Secim, kendi orneklerimizle yaptigimiz karsilastirmaya dayanir (15.09.2026):
+#   - MODEL (hizli, varsayilan): 3.5 Flash Lite ~1 sn; klise ve kanal ayrimi 3.6 ile
+#     ayni, SEO kapsami daha dusuktu (prompt'taki kelime kurali ile desteklendi).
+#   - MODEL_OZENLI: kullanici "Daha ozenli yaz" derse; 3.6 Flash daha yavas ama
+#     SEO kapsami daha yuksek.
+#   - MODEL_SES: ses -> metin. Sentetik kayit testinde 3.6 Flash konusanin
+#     kelimelerini daha iyi korudu (%96/%96); Lite "kendim" -> "kendi" hatasi yapti.
+# Google eski modelleri kapatabilir: "404 ... no longer available" hatasinda hata
+# mesajinin onerdigi adi ilgili degiskene yazin.
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+MODEL_OZENLI = os.getenv("GEMINI_MODEL_OZENLI", "gemini-3.6-flash")
+MODEL_SES = os.getenv("GEMINI_MODEL_SES", "gemini-3.6-flash")
+
+# Hizli model disindaki (yavas olabilen) modeller icin bekleme siniri, saniye.
+# Olcumlerimizde 3.6 Flash yaniti 16-65 sn arasinda degisti; sinir asilirsa istek
+# hizli modele yonlendirilir ve kullanici bir dakika beklemez.
+OZENLI_ZAMAN_ASIMI_SN = float(os.getenv("GEMINI_OZENLI_ZAMAN_ASIMI_SN", "30"))
+SES_ZAMAN_ASIMI_SN = float(os.getenv("GEMINI_SES_ZAMAN_ASIMI_SN", "45"))
+
+# Gemini API 10 sn'den kisa sinirlari "400 INVALID_ARGUMENT" ile reddeder.
+_EN_KISA_SINIR_SN = 10.0
+
+# Bu hatalarda istek diger modele bir kez yonlendirilir (yogunluk, kota, kapatilmis
+# model, zaman asimi). Sure sunucuda dolarsa API "504 DEADLINE_EXCEEDED" dondurur.
+_YEDEGE_GECIS_HATALARI = ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED",
+                          "404", "NOT_FOUND", "504", "DEADLINE_EXCEEDED", "timed out")
 
 
 # ---------------------------------------------------------------------------
@@ -34,6 +57,7 @@ class Icerik:
     instagram: str
     shopier: str
     ham_yanit: str = ""      # ayrıştırma hatalarını incelemek için
+    model: str = ""          # yanıtı fiilen üreten model (yedeğe geçiş görünür olsun)
 
     def bos_mu(self) -> bool:
         return not (self.instagram.strip() or self.shopier.strip())
@@ -53,6 +77,67 @@ def istemci_olustur() -> genai.Client:
     return genai.Client(api_key=anahtar)
 
 
+def modelleri_yenile() -> None:
+    """
+    Model adlarını ortam değişkenlerinden yeniden okur.
+
+    Model adları import anında okunur; Streamlit secrets ise ortam değişkenlerine
+    import'tan SONRA yazılır. app.py secrets'ı yükledikten sonra bunu çağırır.
+    """
+    global MODEL, MODEL_OZENLI, MODEL_SES, OZENLI_ZAMAN_ASIMI_SN, SES_ZAMAN_ASIMI_SN
+    MODEL = os.getenv("GEMINI_MODEL", MODEL)
+    MODEL_OZENLI = os.getenv("GEMINI_MODEL_OZENLI", MODEL_OZENLI)
+    MODEL_SES = os.getenv("GEMINI_MODEL_SES", MODEL_SES)
+    OZENLI_ZAMAN_ASIMI_SN = float(os.getenv("GEMINI_OZENLI_ZAMAN_ASIMI_SN",
+                                            OZENLI_ZAMAN_ASIMI_SN))
+    SES_ZAMAN_ASIMI_SN = float(os.getenv("GEMINI_SES_ZAMAN_ASIMI_SN", SES_ZAMAN_ASIMI_SN))
+
+
+def model_sec(ozenli: bool = False) -> str:
+    """Kullanıcının tercihine göre metin modeli: hızlı (varsayılan) ya da özenli."""
+    return MODEL_OZENLI if ozenli else MODEL
+
+
+def _gecici_hata_mi(hata: Exception) -> bool:
+    """Yoğunluk, kota, kapatılmış model ve zaman aşımı geçicidir; diğer model denenebilir."""
+    return ("Timeout" in type(hata).__name__
+            or any(k in str(hata) for k in _YEDEGE_GECIS_HATALARI))
+
+
+def _modelle_uret(client: genai.Client, birincil: str, contents,
+                  yedek_model: bool = True,
+                  zaman_asimi_sn: float | None = None) -> tuple[str, str]:
+    """
+    İsteği birincil modele gönderir; geçici bir hata olursa diğer modeli bir kez dener.
+
+    Döndürür: (yanıt metni, yanıtı üreten model). Yedeğe geçiş üreticinin boş ekranla
+    kalmaması içindir; ölçüm tekrarlanabilir kalsın diye toplu testte kapatılır.
+    Kalıcı hatalar (ör. geçersiz istek) yedeğe geçmeden olduğu gibi yükselir.
+
+    zaman_asimi_sn: hızlı model (MODEL) DIŞINDAKİ her denemeye uygulanır. Böylece yavaş
+    model hem birincil hem yedek olarak kullanıcıyı sınırsız bekletemez.
+    """
+    adaylar = [birincil]
+    if yedek_model:
+        adaylar += [m for m in (MODEL, MODEL_OZENLI) if m != birincil]
+    son_hata = None
+    for model in dict.fromkeys(adaylar):
+        config = None
+        if zaman_asimi_sn and model != MODEL:
+            sinir_ms = int(max(zaman_asimi_sn, _EN_KISA_SINIR_SN) * 1000)
+            config = types.GenerateContentConfig(
+                http_options=types.HttpOptions(timeout=sinir_ms))
+        try:
+            yanit = client.models.generate_content(model=model, contents=contents,
+                                                   config=config)
+            return (yanit.text or "").strip(), model
+        except Exception as hata:
+            son_hata = hata
+            if not _gecici_hata_mi(hata):
+                raise
+    raise son_hata
+
+
 # ---------------------------------------------------------------------------
 def icerik_uret(anlatim: str,
                 kategori: str = "Tekstil / El sanatı",
@@ -61,6 +146,8 @@ def icerik_uret(anlatim: str,
                 anahtar_kelimeler: list[str] | None = None,
                 uslup_ornekleri: list[str] | None = None,
                 trends_kullan: bool = True,
+                ozenli: bool = False,
+                yedek_model: bool = True,
                 client: genai.Client | None = None) -> Icerik:
     """
     Üreticinin anlatımından pazarlama içeriği üretir.
@@ -72,6 +159,9 @@ def icerik_uret(anlatim: str,
     trends_kullan    : anahtar_kelimeler verilmediyse Google Trends'ten canlı
                        çekilsin mi? (kapatınca prompts'taki sabit liste kullanılır —
                        toplu testte tekrarlanabilirlik için False verilir)
+    ozenli           : True ise daha yavaş ama daha özenli model (MODEL_OZENLI)
+    yedek_model      : model geçici hata verirse diğer modele geçilsin mi?
+                       (toplu testte False — ölçülen model değişmesin)
     """
     if not anlatim or not anlatim.strip():
         raise ValueError("Anlatım boş olamaz.")
@@ -99,11 +189,11 @@ def icerik_uret(anlatim: str,
                          uslup_ornekleri=uslup_ornekleri)
 
     client = client or istemci_olustur()
-    yanit = client.models.generate_content(model=MODEL, contents=prompt)
-    metin = (yanit.text or "").strip()
+    metin, kullanilan = _modelle_uret(client, model_sec(ozenli), prompt, yedek_model,
+                                      zaman_asimi_sn=OZENLI_ZAMAN_ASIMI_SN)
 
     ig, sh = _ayristir(metin)
-    return Icerik(instagram=ig, shopier=sh, ham_yanit=metin)
+    return Icerik(instagram=ig, shopier=sh, ham_yanit=metin, model=kullanilan)
 
 
 # ---------------------------------------------------------------------------
@@ -133,39 +223,37 @@ def sesten_metne(ses_baytlari: bytes, mime_turu: str = "audio/wav",
 
     Gemini sesi doğrudan işleyebildiği için ayrı bir STT servisi gerekmez.
     Konuşanın kendi kelimeleri korunur — metin güzelleştirilmez (bkz. SES_TALIMATI).
+    Doğruluk hızdan önemli olduğu için MODEL_SES (varsayılan: özenli model) kullanılır.
     """
     if not ses_baytlari:
         raise ValueError("Ses kaydı boş.")
 
     client = client or istemci_olustur()
-    yanit = client.models.generate_content(
-        model=MODEL,
-        contents=[
-            types.Part.from_bytes(data=ses_baytlari, mime_type=mime_turu),
-            prompts.SES_TALIMATI,
-        ],
-    )
-    return (yanit.text or "").strip()
+    metin, _ = _modelle_uret(client, MODEL_SES, [
+        types.Part.from_bytes(data=ses_baytlari, mime_type=mime_turu),
+        prompts.SES_TALIMATI,
+    ], zaman_asimi_sn=SES_ZAMAN_ASIMI_SN)
+    return metin
 
 
 def reels_uret(anlatim: str, kategori: str, ton: str = "sıcak ve samimi",
-               uslup_ornekleri: list[str] | None = None,
+               uslup_ornekleri: list[str] | None = None, ozenli: bool = False,
                client: genai.Client | None = None) -> str:
     """Telefonla çekilebilecek 20-30 sn'lik Reels/TikTok çekim planı (Markdown)."""
     prompt = prompts.reels_senaryosu(anlatim=anlatim, kategori=kategori, ton=ton,
                                      uslup_ornekleri=uslup_ornekleri)
     client = client or istemci_olustur()
-    yanit = client.models.generate_content(model=MODEL, contents=prompt)
-    return (yanit.text or "").strip()
+    return _modelle_uret(client, model_sec(ozenli), prompt,
+                         zaman_asimi_sn=OZENLI_ZAMAN_ASIMI_SN)[0]
 
 
-def foto_rehberi_uret(anlatim: str, kategori: str,
+def foto_rehberi_uret(anlatim: str, kategori: str, ozenli: bool = False,
                       client: genai.Client | None = None) -> str:
     """Ürüne özel, telefonla uygulanabilir fotoğraf çekim rehberi (Markdown)."""
     prompt = prompts.foto_rehberi(anlatim=anlatim, kategori=kategori)
     client = client or istemci_olustur()
-    yanit = client.models.generate_content(model=MODEL, contents=prompt)
-    return (yanit.text or "").strip()
+    return _modelle_uret(client, model_sec(ozenli), prompt,
+                         zaman_asimi_sn=OZENLI_ZAMAN_ASIMI_SN)[0]
 
 
 def seo_kapsami(metin: str, anahtar_kelimeler: list[str]) -> int:
@@ -226,3 +314,4 @@ if __name__ == "__main__":
     kelimeler = prompts.KATEGORI_KELIMELERI["Tekstil / El sanatı"]
     kapsam = seo_kapsami(sonuc.instagram + " " + sonuc.shopier, kelimeler)
     print(f"SEO kapsamı: {kapsam}/{len(kelimeler)} anahtar kelime kullanıldı")
+    print(f"Model: {sonuc.model}")

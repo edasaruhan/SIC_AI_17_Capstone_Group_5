@@ -26,7 +26,19 @@ Bu rehber, uygulamayı **ücretsiz Streamlit Community Cloud**'a alıp herkesin
 2. **share.streamlit.io** adresine git → **GitHub ile giriş yap** (Continue with GitHub).
    İlk girişte Streamlit'in repoya erişimine izin vermen istenir.
 
-3. **Create app → Deploy a public app from GitHub** ve şunları seç:
+   > 🔓 **Repo private kalabilir — public yapmak gerekmez.** Streamlit Community Cloud
+   > private repodan da yayına alır. İki şart var:
+   > 1. Deploy'u **repoda admin olan kişi** yapmalı. Bu repoda admin, sahibi olan
+   >    **Tuğçe**'dir; admin olmayan ortaklar "This repository does not exist" hatası görür.
+   > 2. GitHub bağlantısında Streamlit'e **private repolar için ek izin** verilmeli.
+   >    Streamlit bu izinle repoya salt-okunur bir *deploy key* ekler; GitHub bunu repo
+   >    yöneticisine bildirir (normaldir).
+   >
+   > Kaynaklar: [Connect your GitHub account](https://docs.streamlit.io/deploy/streamlit-community-cloud/get-started/connect-your-github-account) ·
+   > [Manage your GitHub connection](https://docs.streamlit.io/deploy/streamlit-community-cloud/manage-your-account/manage-your-github-connection)
+
+3. **Create app → Deploy a public app from GitHub** ve şunları seç
+   (*"public app"* uygulama linkinin herkese açık olması demektir; repo private kalabilir):
    - **Repository:** `Tugce-hub/Uretken_Kadin`
    - **Branch:** `main`
    - **Main file path:** `src/app.py`
@@ -35,8 +47,10 @@ Bu rehber, uygulamayı **ücretsiz Streamlit Community Cloud**'a alıp herkesin
 4. **Advanced settings → Secrets** kutusuna API anahtarını gir (TOML biçiminde):
    ```toml
    GEMINI_API_KEY = "buraya_kendi_anahtarin"
-   # Gerekirse model adını da sabitleyebilirsin:
-   # GEMINI_MODEL = "gemini-3.6-flash"
+   # İsteğe bağlı — boş bırakılırsa koddaki varsayılanlar kullanılır:
+   # GEMINI_MODEL = "gemini-3.5-flash-lite"        # hızlı, varsayılan
+   # GEMINI_MODEL_OZENLI = "gemini-3.6-flash"      # "Daha özenli yaz" açıkken
+   # GEMINI_MODEL_SES = "gemini-3.6-flash"         # ses → metin
    ```
    > Bu anahtar yalnızca sunucuda saklanır; koda veya GitHub'a yazılmaz.
 
@@ -54,6 +68,7 @@ yeniden dağıtılır. Ayrı bir işlem gerekmez.
 | Durum | Çözüm |
 |---|---|
 | "GEMINI_API_KEY bulunamadı" | Adım 4'teki Secrets'ı eklemeyi/doğru yazmayı kontrol et. |
+| "This repository does not exist" | Deploy'u repoda **admin** olan kişi yapmalı ve Streamlit'e private repo izni verilmeli (Adım 2'deki not). |
 | Kalite rozeti görünmüyor | Sorun değil — model CSV'den kurulamadıysa özellik sessizce gizlenir; çekirdek üretim çalışır. |
 | Kurulum çok uzun sürüyor | İlk deploy'da bağımlılıklar (scikit-learn vb.) derlenir; sonraki açılışlar hızlıdır. |
 | Uygulamayı durdurmak istiyorum | Streamlit Cloud panelinden uygulamayı "delete/reboot" edebilirsin. |

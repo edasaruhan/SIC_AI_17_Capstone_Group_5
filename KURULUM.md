@@ -75,6 +75,7 @@ Tarayıcıda otomatik açılır (`http://localhost:8501`).
 | `ModuleNotFoundError: google` | `pip install -r requirements.txt` komutunu çalıştırın |
 | `ModuleNotFoundError: prompts` | Komutu proje ana klasöründen çalıştırın (`src` içinden değil) |
 | `404 ... model is no longer available` | Google eski modeli kapatmış. Hata mesajı hangi modeli önerdiyse onu kullanın: `.env` dosyasına `GEMINI_MODEL=önerilen-model-adı` satırını ekleyin (kodu değiştirmenize gerek yok) |
+| İçerik çok yavaş geliyor | Sol üstteki **»** okuyla kenar çubuğunu açın; **Daha özenli yaz** kapalı olsun. Varsayılan hızlı model (`gemini-3.5-flash-lite`) birkaç saniyede yanıt verir. Özenli model 30 sn içinde yanıt vermezse (ses için 45 sn) uygulama kendiliğinden hızlı modele geçer; bir model yoğunsa da diğerine geçer. |
 
 ---
 
