@@ -129,180 +129,287 @@ except Exception:
 
 
 # ---------------------------------------------------------------------------
-# KENAR ÇUBUĞU — sade ayarlar + gizli geliştirici modu
+# KENAR ÇUBUĞU — her şey düğme: aç/kapa ayarlarının durumu düğmenin üzerinde yazar
 # ---------------------------------------------------------------------------
+for _a in ("buyuk_yazi", "ozenli", "gelistirici"):
+    st.session_state.setdefault(_a, False)
+
+
+def _ayar_degistir(anahtar: str) -> None:
+    st.session_state[anahtar] = not st.session_state[anahtar]
+
+
+def ayar_dugmesi(anahtar: str, etiket: str, yardim: str) -> None:
+    """Açık/kapalı ayar: açıkken vurgulu düğme; durum ekran okuyucuya da etikette okunur."""
+    acik = st.session_state[anahtar]
+    st.button(f"{etiket} · {'Açık ✓' if acik else 'Kapalı'}", key=f"ayar_{anahtar}",
+              type="primary" if acik else "secondary", use_container_width=True,
+              help=yardim, on_click=_ayar_degistir, args=(anahtar,))
+
+
 with st.sidebar:
-    st.markdown("### Ayarlar")
-    buyuk_yazi = st.toggle("Büyük yazı modu", value=False,
-                           help="Tüm yazıları büyütür — okuması zor gelenler için.")
-    ozenli = st.toggle("Daha özenli yaz", value=False,
-                       help="İçerikler biraz daha yavaş hazırlanır ama daha özenli "
-                            "yazılır. Kapalıyken birkaç saniyede hazır olur.")
-    st.divider()
-    st.caption("Ton profiliniz")
-    if st.session_state.uslup_ornekleri:
-        st.success(f"Aktif ({len(st.session_state.uslup_ornekleri)} örnek)")
-    else:
-        st.caption("Tanımlı değil.")
-    if st.button("Sizin gibi yazmasını öğretin", use_container_width=True):
+    st.markdown('<div class="kenar-baslik">⚙️ Ayarlar</div>', unsafe_allow_html=True)
+    ayar_dugmesi("buyuk_yazi", "🔠 Büyük yazı",
+                 "Tüm yazıları büyütür — okuması zor gelenler için.")
+    ayar_dugmesi("ozenli", "✍️ Daha özenli yaz",
+                 "İçerikler biraz daha yavaş hazırlanır ama daha özenli yazılır. "
+                 "Kapalıyken birkaç saniyede hazır olur.")
+
+    st.markdown('<div class="kenar-bolum">🎨 Ton profiliniz</div>', unsafe_allow_html=True)
+    _ornek = len(st.session_state.uslup_ornekleri)
+    st.markdown(f'<div class="durum-cip{" acik" if _ornek else ""}">'
+                f'{f"Aktif · {_ornek} örnek" if _ornek else "Henüz tanımlı değil"}</div>',
+                unsafe_allow_html=True)
+    if st.button("✏️ Sizin gibi yazmasını öğretin", use_container_width=True, key="kenar_ton"):
         git("ton")
-    st.divider()
-    st.caption("Firmalar ve kurumlar için")
-    if st.button("🔌 API ile entegrasyon", use_container_width=True,
+
+    st.markdown('<div class="kenar-bolum">🏢 Firmalar ve kurumlar için</div>',
+                unsafe_allow_html=True)
+    if st.button("🔌 API ile entegrasyon", use_container_width=True, key="kenar_api",
                  help="Üretken Kadın'ı kendi platformunuza bağlamak için belgeler"):
         git("api")
-    st.divider()
-    gelistirici = st.toggle("🔧 Geliştirici / rapor modu", value=False,
-                            help="Prompt karşılaştırma, test paneli ve model "
-                                 "metrikleri — capstone raporu içindir.")
-    st.divider()
-    st.caption("Yayınlamadan önce metinleri okuyun — son karar her zaman sizindir.")
 
-TABAN = "18px" if buyuk_yazi else "16.5px"
+    st.markdown('<div class="kenar-bolum">📊 Capstone raporu</div>', unsafe_allow_html=True)
+    ayar_dugmesi("gelistirici", "🔧 Geliştirici modu",
+                 "Prompt karşılaştırma, test paneli ve model metrikleri — capstone "
+                 "raporu içindir.")
+    st.markdown('<div class="kenar-not">Yayınlamadan önce metinleri okuyun — son karar '
+                'her zaman sizindir.</div>', unsafe_allow_html=True)
+
+buyuk_yazi = st.session_state.buyuk_yazi
+ozenli = st.session_state.ozenli
+gelistirici = st.session_state.gelistirici
+
+TABAN = "18.5px" if buyuk_yazi else "16.5px"
 
 
 # ---------------------------------------------------------------------------
-# TASARIM SİSTEMİ (CSS) — sıcak, sade, büyük dokunma hedefleri
+# TASARIM SİSTEMİ (CSS) — "Oyunbaz" (C yönü): kalın çizgi, sert gölge, canlı renkler
+# Erişilebilirlik: pembe dolgularda koyu yazı (5,4:1), büyük dokunma hedefleri,
+# görünür odak halkası, "hareketi azalt" tercihinde animasyon/konfeti kapalı.
 # ---------------------------------------------------------------------------
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap');
 :root {{
-  --bg:#FBF8F6; --surface:#FFFFFF; --surface-2:#F7EFF2;
-  --border:#ECE1E6; --border-strong:#DDCAD3;
-  --primary:#9B3D63; --primary-deep:#4A2138; --primary-soft:#F4E6EC;
-  --accent:#B0791E; --sage:#5E7E67;
-  --text:#2E2A28; --text-2:#574E48; --muted:#6B5F64;
-  --radius-sm:12px; --radius:16px; --radius-lg:22px;
-  --shadow-sm:0 1px 2px rgba(74,33,56,.06);
-  --shadow-md:0 6px 20px rgba(74,33,56,.10);
-  --shadow-lg:0 16px 40px rgba(74,33,56,.16);
+  --bg:#FFF8FC; --surface:#FFFFFF; --ink:#2B1638; --ink-2:#4B3659; --muted:#6D4F7E;
+  --pink:#FF5C8A; --pink-2:#FF7AA0; --pink-soft:#FFE3EE; --plum:#8A2A6B; --plum-soft:#F6E3F0;
+  --yellow:#FFD34D; --yellow-soft:#FFF1C9; --blue-soft:#E6F4FF; --mint-soft:#E3FBE9;
+  --green:#17773A; --line:#EED9F2;
+  --golge-sm:3px 3px 0 var(--ink); --golge:4px 4px 0 var(--ink); --golge-lg:6px 6px 0 var(--ink);
 }}
 html {{ font-size:{TABAN}; }}
-.stApp {{ background:var(--bg); overflow-x:hidden; }}
+.stApp {{ background-color:var(--bg); overflow-x:hidden;
+  background-image:radial-gradient(rgba(138,42,107,.08) 1.2px, transparent 1.2px);
+  background-size:18px 18px; }}
 .stApp, .stApp p, .stApp li, .stApp label, input, textarea, select, button {{
-  font-family:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  color:var(--text); }}
+  font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:var(--ink); }}
 .stApp p, .stApp li {{ line-height:1.65; }}
-h1,h2,h3,h4,.marka,.dev-baslik {{ font-family:'Lexend','Source Sans 3',sans-serif; }}
+h1,h2,h3,h4,.ekran-baslik,.kart-baslik,.gun-baslik,.dev-baslik,.kenar-baslik {{
+  font-family:'Baloo 2','Nunito',sans-serif; color:var(--ink); }}
 [data-testid="stHeader"] {{ background:transparent; height:0; }}
 /* Araç çubuğu açık kalır: kenar çubuğunu açan ok onun içinde. Yalnız menü ve Deploy gizli. */
 #MainMenu, footer, [data-testid="stMainMenu"], [data-testid="stAppDeployButton"] {{ display:none !important; }}
-.block-container {{ padding-top:1.2rem; padding-bottom:3.5rem; max-width:760px; }}
-.kart p,.hero p {{ overflow-wrap:anywhere; }}
-a {{ color:var(--primary); }}
+.block-container {{ padding-top:1.2rem; padding-bottom:3.5rem; max-width:780px; }}
+.kart p {{ overflow-wrap:anywhere; }}
+a {{ color:var(--plum); font-weight:700; }}
 
 a:focus-visible, button:focus-visible, input:focus-visible,
-textarea:focus-visible, select:focus-visible, [data-baseweb="select"]:focus-within {{
-  outline:3px solid var(--accent) !important; outline-offset:2px !important; border-radius:8px; }}
+textarea:focus-visible, select:focus-visible, summary:focus-visible {{
+  outline:3px solid var(--plum) !important; outline-offset:3px !important; }}
+
+/* Kenar çubuğunu açan/kapatan ok: küçük çip */
+[data-testid="stExpandSidebarButton"], [data-testid="stSidebarCollapseButton"] button {{
+  background:#fff !important; border:2px solid var(--ink) !important; border-radius:12px !important;
+  box-shadow:var(--golge-sm); color:var(--ink) !important; }}
 
 /* Üst bar */
-.ustbar {{ display:flex; align-items:center; gap:.7rem; margin-bottom:1.1rem; }}
-.ustbar .logo {{ width:40px; height:40px; border-radius:12px;
-  background:linear-gradient(135deg,var(--primary),var(--accent) 130%);
-  display:flex; align-items:center; justify-content:center; font-size:1.25rem; }}
-.ustbar .ad {{ font-family:'Lexend'; font-weight:700; font-size:1.15rem; color:var(--primary-deep); }}
-.ustbar .alt {{ font-size:.8rem; color:var(--muted); margin-top:-3px; }}
+.ustbar {{ display:flex; align-items:center; gap:.75rem; margin-bottom:.9rem; }}
+.ustbar .logo {{ width:46px; height:46px; border-radius:14px; background:var(--yellow);
+  border:2.5px solid var(--ink); box-shadow:var(--golge-sm); display:grid; place-items:center;
+  font-size:1.45rem; animation:salla 3.2s ease-in-out infinite; }}
+.ustbar .ad {{ font-family:'Baloo 2'; font-weight:800; font-size:1.35rem; line-height:1; color:var(--ink); }}
+.ustbar .alt {{ font-size:.82rem; color:var(--muted); font-weight:700; }}
+
+/* Adım göstergesi: Anlat → Hazırla → Paylaş */
+.ilerleme {{ display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; margin:.1rem 0 .9rem; }}
+.ilerleme .adim-cip {{ display:flex; align-items:center; gap:.45rem; padding:.28rem .85rem .28rem .3rem;
+  border-radius:999px; background:#fff; border:2px solid var(--line); font-weight:800; font-size:.92rem;
+  color:var(--muted); }}
+.ilerleme .adim-cip b {{ width:1.75rem; height:1.75rem; border-radius:50%; display:grid; place-items:center;
+  background:var(--plum-soft); color:var(--plum); font-family:'Baloo 2'; }}
+.ilerleme .adim-cip.aktif {{ background:var(--plum); border-color:var(--ink); color:#fff; box-shadow:var(--golge-sm); }}
+.ilerleme .adim-cip.aktif b {{ background:var(--yellow); color:var(--ink); }}
+.ilerleme .adim-cip.bitti {{ background:var(--mint-soft); border-color:var(--green); color:var(--green); }}
+.ilerleme .adim-cip.bitti b {{ background:var(--green); color:#fff; }}
+.ilerleme .cizgi {{ width:1.4rem; height:3px; border-radius:3px; background:var(--line); }}
+.ilerleme .cizgi.dolu {{ background:var(--green); }}
 
 /* Karşılama */
-.karsilama {{ text-align:center; padding:1rem 0 0; animation:gir .5s ease both; }}
-.karsilama .amblem {{ width:84px; height:84px; border-radius:24px; margin:0 auto 1.1rem;
-  background:linear-gradient(135deg,var(--primary),var(--accent) 140%);
-  display:flex; align-items:center; justify-content:center; font-size:2.4rem;
-  box-shadow:var(--shadow-md); }}
-.karsilama h1 {{ font-size:2.15rem; color:var(--primary-deep); margin:0 0 .6rem;
-  letter-spacing:-.5px; line-height:1.15; }}
-.karsilama .slogan {{ color:var(--primary); font-weight:600; }}
-.karsilama .aciklama {{ color:var(--text-2); font-size:1.1rem; max-width:520px;
-  margin:0 auto 1.6rem; }}
-.adimlar {{ display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; margin:1.4rem 0; text-align:left; }}
-.adim {{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  padding:1.1rem; box-shadow:var(--shadow-sm); }}
-.adim .no {{ width:34px; height:34px; border-radius:11px; background:var(--primary-soft);
-  color:var(--primary); font-weight:700; font-size:1.1rem; display:flex; align-items:center;
-  justify-content:center; margin-bottom:.6rem; font-family:'Lexend'; }}
-.adim h4 {{ margin:0 0 .2rem; font-size:1.02rem; color:var(--primary-deep); }}
-.adim p {{ margin:0; font-size:.94rem; color:var(--muted); }}
-.guven {{ background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius);
-  padding:.9rem 1.1rem; color:var(--text-2); font-size:.96rem; margin:1rem 0 1.4rem; }}
+.karsilama {{ text-align:center; padding:.6rem 0 0; animation:gir .5s ease both; }}
+.karsilama .amblem {{ width:94px; height:94px; border-radius:28px; margin:0 auto 1.1rem;
+  background:var(--yellow); border:3px solid var(--ink); box-shadow:var(--golge-lg);
+  display:grid; place-items:center; font-size:2.7rem; animation:zipla 2.4s ease-in-out infinite; }}
+.karsilama h1 {{ font-size:2.6rem; font-weight:800; line-height:1.12; color:var(--ink);
+  margin:0 0 .8rem; letter-spacing:-.5px; }}
+.karsilama .vurgu {{ background:var(--pink); padding:0 .4rem; border-radius:12px;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+  box-shadow:inset 0 0 0 2.5px var(--ink), 3px 3px 0 var(--ink); }}
+.karsilama .aciklama {{ color:var(--ink-2); font-size:1.12rem; max-width:560px; margin:0 auto 1.4rem; }}
+.adimlar {{ display:grid; grid-template-columns:repeat(3,1fr); gap:.9rem; margin:1.4rem 0; text-align:left; }}
+.adim {{ background:#fff; border:2.5px solid var(--ink); border-radius:20px; padding:1.1rem;
+  box-shadow:var(--golge); transition:transform .2s ease; }}
+.adim:nth-child(1) {{ background:var(--blue-soft); }}
+.adim:nth-child(2) {{ background:var(--yellow-soft); }}
+.adim:nth-child(3) {{ background:var(--pink-soft); }}
+.adim:hover {{ transform:translateY(-5px) rotate(-1deg); }}
+.adim .no {{ width:2.3rem; height:2.3rem; border-radius:50%; background:#fff; border:2.5px solid var(--ink);
+  display:grid; place-items:center; font-family:'Baloo 2'; font-weight:800; font-size:1.15rem; margin-bottom:.55rem; }}
+.adim h4 {{ margin:0 0 .2rem; font-size:1.25rem; font-weight:800; }}
+.adim p {{ margin:0; font-size:.96rem; color:var(--ink-2); }}
+.guven {{ background:#fff; border:2.5px dashed var(--plum); border-radius:18px; padding:.9rem 1.1rem;
+  color:var(--ink-2); font-size:.98rem; margin:1rem 0 1.4rem; }}
 
 /* Başlıklar / kartlar */
-.ekran-baslik {{ font-size:1.7rem; color:var(--primary-deep); margin:.2rem 0 .3rem; }}
-.ekran-alt {{ color:var(--muted); font-size:1.03rem; margin-bottom:1.2rem; }}
-.kart {{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  padding:1.2rem 1.3rem; margin-bottom:1rem; box-shadow:var(--shadow-sm); animation:gir .35s ease both; }}
-.kart-baslik {{ color:var(--primary); font-weight:700; font-size:1.05rem; margin-bottom:.5rem;
-  font-family:'Lexend'; }}
-.kart p {{ color:var(--text-2); margin:0; }}
-.bos {{ text-align:center; padding:2rem 1rem; color:var(--muted); }}
-.bos .ik {{ font-size:2.2rem; }}
+.ekran-baslik {{ font-size:2.1rem; font-weight:800; line-height:1.1; margin:.15rem 0 .25rem; }}
+.ekran-baslik .yumak {{ display:inline-block; animation:zipla 1.9s ease-in-out infinite; }}
+.ekran-alt {{ color:var(--muted); font-size:1.05rem; font-weight:600; margin-bottom:1.1rem; }}
+.kart {{ background:#fff; border:2.5px solid var(--ink); border-radius:20px; padding:1.1rem 1.25rem;
+  margin-bottom:1rem; box-shadow:var(--golge); animation:gir .35s ease both; }}
+.kart-baslik {{ font-weight:800; font-size:1.22rem; margin:.5rem 0 .45rem; }}
+.kart p {{ color:var(--ink-2); margin:0; }}
+.bos {{ text-align:center; padding:2rem 1rem; color:var(--muted); font-weight:600; }}
+.bos .ik {{ font-size:2.6rem; display:inline-block; animation:zipla 2.2s ease-in-out infinite; }}
 
-/* Butonlar — büyük, dostça */
-.stButton > button, .stDownloadButton > button {{
-  background:var(--surface); color:var(--primary); border:1.5px solid var(--border-strong);
-  border-radius:var(--radius-sm); font-family:'Lexend'; font-weight:600; font-size:1.02rem;
-  min-height:52px; padding:.7rem 1.2rem; cursor:pointer;
-  transition:background .16s ease,border-color .16s ease,transform .12s ease,box-shadow .16s ease; }}
-.stButton > button:hover:not(:disabled), .stDownloadButton > button:hover:not(:disabled) {{
-  border-color:var(--primary); background:var(--primary-soft); transform:translateY(-1px);
-  box-shadow:var(--shadow-sm); }}
-.stButton > button:active:not(:disabled) {{ transform:translateY(0) scale(.99); }}
-.stButton > button:disabled {{ opacity:.5; cursor:not-allowed; }}
-.stDownloadButton > button {{ color:var(--sage); border-color:var(--sage); }}
-.stButton > button[kind="primary"], .stButton > button[data-testid="stBaseButton-primary"] {{
-  background:linear-gradient(135deg,var(--primary),var(--primary-deep) 115%);
-  color:#fff !important; border:none; box-shadow:var(--shadow-md); font-size:1.08rem; min-height:56px; }}
-.stButton > button[kind="primary"]:hover:not(:disabled),
-.stButton > button[data-testid="stBaseButton-primary"]:hover:not(:disabled) {{
-  filter:brightness(1.06); transform:translateY(-1px); box-shadow:var(--shadow-lg); }}
+/* Kutlama bandı + konfeti (sonuç ekranı) */
+.kutlama {{ display:flex; align-items:center; gap:.85rem; background:var(--mint-soft);
+  border:2.5px solid var(--ink); border-radius:20px; padding:.8rem 1rem; box-shadow:var(--golge);
+  margin:.3rem 0 1.1rem; animation:pop .55s cubic-bezier(.3,1.6,.5,1) both; }}
+.kutlama .rozet {{ flex:none; background:var(--green); color:#fff; font-family:'Baloo 2'; font-weight:800;
+  padding:.2rem .8rem; border-radius:999px; border:2px solid var(--ink); }}
+.kutlama b {{ font-family:'Baloo 2'; font-size:1.1rem; }}
+.konfeti {{ position:fixed; top:-24px; height:14px; border-radius:3px; z-index:9999; pointer-events:none;
+  animation:dus 2.4s ease-in forwards; }}
+
+/* Butonlar — kalın çizgi, sert gölge, basınca çöker */
+.stButton button, .stDownloadButton button, [data-testid="stFormSubmitButton"] button,
+a[data-testid^="stBaseLinkButton"] {{
+  background:#fff; color:var(--ink) !important; border:2.5px solid var(--ink) !important;
+  border-radius:16px !important; font-family:'Baloo 2','Nunito',sans-serif; font-weight:700;
+  font-size:1.08rem; min-height:52px; padding:.5rem 1.1rem; box-shadow:var(--golge); cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, background-color .15s ease; }}
+.stButton button p, .stDownloadButton button p, [data-testid="stFormSubmitButton"] button p,
+a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-serif; font-weight:700;
+  color:var(--ink) !important; font-size:inherit; }}
+.stButton button:hover:not(:disabled), .stDownloadButton button:hover:not(:disabled),
+[data-testid="stFormSubmitButton"] button:hover:not(:disabled), a[data-testid^="stBaseLinkButton"]:hover {{
+  transform:translate(-2px,-2px); box-shadow:var(--golge-lg); background:var(--pink-soft); }}
+.stButton button:active:not(:disabled), .stDownloadButton button:active:not(:disabled),
+[data-testid="stFormSubmitButton"] button:active:not(:disabled) {{
+  transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink); }}
+.stButton button:disabled {{ opacity:.5; cursor:not-allowed; }}
+.stDownloadButton button {{ background:var(--mint-soft); }}
+.stButton button[kind="primary"], .stButton button[data-testid="stBaseButton-primary"],
+[data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"] {{
+  background:var(--pink); font-size:1.2rem; min-height:58px; }}
+.stButton button[kind="primary"] p, .stButton button[data-testid="stBaseButton-primary"] p {{ font-weight:800; }}
+.stButton button[kind="primary"]:hover:not(:disabled),
+.stButton button[data-testid="stBaseButton-primary"]:hover:not(:disabled) {{ background:var(--pink-2); }}
 
 /* Girdiler */
-.stTextArea textarea, .stTextInput input {{ font-size:1.05rem !important;
-  border:1.5px solid var(--border-strong) !important; border-radius:var(--radius-sm) !important; }}
-.stTextArea textarea:focus, .stTextInput input:focus {{ border-color:var(--primary) !important; }}
+[data-baseweb="textarea"], [data-baseweb="input"], [data-baseweb="select"] > div {{
+  border:2.5px solid var(--ink) !important; border-radius:14px !important; background:#fff !important;
+  box-shadow:var(--golge-sm); }}
+[data-baseweb="textarea"]:focus-within, [data-baseweb="input"]:focus-within,
+[data-baseweb="select"] > div:focus-within {{ box-shadow:0 0 0 4px var(--yellow), var(--golge-sm); }}
+.stTextArea textarea, .stTextInput input {{ font-size:1.05rem !important; background:#fff !important; color:var(--ink) !important; }}
+[data-testid="stWidgetLabel"] p {{ font-weight:800; }}
 
-/* Pills / segmented (kategori & giriş yöntemi) */
-[data-testid="stPills"] button, [data-testid="stSegmentedControl"] button {{
-  min-height:46px; font-size:1rem; border-radius:999px !important; }}
+/* Kategori ve giriş yöntemi kutuları */
+[data-testid="stButtonGroup"] > div {{ gap:.5rem !important; flex-wrap:wrap; }}
+[data-testid="stButtonGroup"] button {{
+  min-height:48px; font-size:1rem; border-radius:16px !important; border:2.5px solid var(--line) !important;
+  background:#fff !important; box-shadow:none; transition:transform .15s ease, box-shadow .15s ease; }}
+[data-testid="stButtonGroup"] button p {{ font-family:'Nunito',sans-serif; font-weight:800; color:var(--ink) !important; }}
+[data-testid="stButtonGroup"] button:hover {{ transform:translateY(-3px) rotate(-1.5deg); border-color:var(--plum) !important; }}
+[data-testid="stButtonGroup"] button[data-testid$="Active"] {{
+  background:var(--yellow) !important; border-color:var(--ink) !important; box-shadow:var(--golge-sm); }}
 
-.ifsa {{ background:var(--surface-2); border:1px dashed var(--border-strong);
-  border-radius:var(--radius-sm); color:var(--muted); font-size:.9rem; text-align:center;
-  padding:.8rem; margin-top:1.6rem; }}
+/* Açılır bölümler, uyarılar, sekmeler, kod kutuları */
+[data-testid="stExpander"] details {{ border:2.5px solid var(--ink) !important; border-radius:18px !important;
+  background:#fff; box-shadow:var(--golge-sm); overflow:hidden; }}
+[data-testid="stExpander"] summary {{ font-weight:800; }}
+[data-testid="stExpander"] summary:hover {{ background:var(--pink-soft); }}
+[data-testid="stAlertContainer"] {{ border:2.5px solid var(--ink); border-radius:16px; box-shadow:var(--golge-sm); }}
+[data-testid="stAlertContainer"] p {{ font-weight:600; }}
+.stTabs [data-baseweb="tab-list"] {{ gap:.5rem; flex-wrap:wrap; }}
+.stTabs [data-baseweb="tab"] {{ font-family:'Baloo 2'; font-weight:700; font-size:1.02rem; height:auto;
+  border:2.5px solid var(--ink); border-radius:14px; padding:.3rem .9rem; background:#fff; }}
+.stTabs [data-baseweb="tab"][aria-selected="true"] {{ background:var(--yellow); box-shadow:var(--golge-sm); }}
+.stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] {{ display:none; }}
+[data-testid="stCode"] pre {{ border:2px solid var(--ink); border-radius:14px; }}
 
-/* Geliştirici modu sekmeleri */
-.dev-baslik {{ color:var(--primary-deep); font-weight:700; }}
-.stTabs [data-baseweb="tab-list"] {{ gap:.25rem; flex-wrap:wrap; }}
-.stTabs [data-baseweb="tab"] {{ font-family:'Lexend'; font-weight:600; }}
+[data-testid="stHorizontalBlock"] .stButton button p {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+@media (max-width:1000px) {{ .ustbar {{ padding-left:2.9rem; }} }}
+.ifsa {{ background:#fff; border:2.5px dashed var(--plum); border-radius:16px; color:var(--muted);
+  font-size:.9rem; text-align:center; padding:.8rem; margin-top:1.6rem; font-weight:600; }}
+
+/* Kenar çubuğu: ayarlar da düğme */
+[data-testid="stSidebar"] {{ background:#FFF1F7; border-right:3px solid var(--ink); }}
+[data-testid="stSidebar"] .kenar-baslik {{ font-weight:800; font-size:1.45rem; margin:.1rem 0 .7rem; }}
+[data-testid="stSidebar"] .kenar-bolum {{ font-weight:800; font-size:.92rem; color:var(--plum); margin:1.1rem 0 .45rem; }}
+[data-testid="stSidebar"] .stButton button {{ font-size:1rem; min-height:50px; box-shadow:var(--golge-sm); }}
+[data-testid="stSidebar"] .stButton button > div {{ justify-content:flex-start; }}
+[data-testid="stSidebar"] .durum-cip {{ display:inline-block; font-weight:800; font-size:.85rem; padding:.2rem .7rem;
+  border-radius:999px; background:#fff; border:2px solid var(--line); color:var(--muted); margin-bottom:.5rem; }}
+[data-testid="stSidebar"] .durum-cip.acik {{ background:var(--mint-soft); border-color:var(--green); color:var(--green); }}
+[data-testid="stSidebar"] .kenar-not {{ margin-top:1.3rem; font-size:.85rem; color:var(--muted); font-weight:600;
+  border-top:2px dashed var(--line); padding-top:.8rem; }}
+
+/* Geliştirici modu */
+.dev-baslik {{ font-weight:800; }}
 
 /* Pano */
-.ozet {{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:.3rem 0 1rem; }}
-.ozet .kutu {{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  padding:.85rem .9rem; box-shadow:var(--shadow-sm); animation:gir .35s ease both; }}
-.ozet .deger {{ font-family:'Lexend'; font-weight:700; font-size:1.35rem; color:var(--primary-deep);
-  line-height:1.2; overflow-wrap:anywhere; }}
-.ozet .etiket {{ font-size:.86rem; color:var(--muted); margin-top:.15rem; }}
-.gun-baslik {{ font-family:'Lexend'; font-weight:600; color:var(--primary); margin:1.1rem 0 .35rem; }}
+.ozet {{ display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin:.3rem 0 1.1rem; }}
+.ozet .kutu {{ background:#fff; border:2.5px solid var(--ink); border-radius:18px; padding:.8rem .9rem;
+  box-shadow:var(--golge); animation:gir .35s ease both; }}
+.ozet .kutu:nth-child(1) {{ background:var(--blue-soft); }}
+.ozet .kutu:nth-child(2) {{ background:var(--yellow-soft); }}
+.ozet .kutu:nth-child(3) {{ background:var(--pink-soft); }}
+.ozet .deger {{ font-family:'Baloo 2'; font-weight:800; font-size:1.6rem; line-height:1.15; overflow-wrap:anywhere; }}
+.ozet .etiket {{ font-size:.88rem; color:var(--ink-2); font-weight:700; margin-top:.1rem; }}
+.gun-baslik {{ font-weight:800; font-size:1.15rem; color:var(--plum); margin:1.1rem 0 .35rem; }}
 /* Geniş Markdown tabloları (API belgesi) dar ekranda sayfayı değil yalnız kendini kaydırsın */
 [data-testid="stMarkdownContainer"] table {{ display:block; max-width:100%; overflow-x:auto; }}
 
 @keyframes gir {{ from {{opacity:0; transform:translateY(10px);}} to {{opacity:1; transform:none;}} }}
-@media (prefers-reduced-motion: reduce) {{ *,*::before,*::after {{ animation:none !important; transition:none !important; }} }}
+@keyframes pop {{ from {{opacity:0; transform:scale(.75);}} to {{opacity:1; transform:none;}} }}
+@keyframes zipla {{ 0%,100% {{transform:none;}} 50% {{transform:translateY(-7px) rotate(-8deg);}} }}
+@keyframes salla {{ 0%,100% {{transform:none;}} 50% {{transform:rotate(-9deg);}} }}
+@keyframes dus {{ to {{transform:translateY(110vh) rotate(720deg); opacity:.3;}} }}
+@media (prefers-reduced-motion: reduce) {{
+  *,*::before,*::after {{ animation:none !important; transition:none !important; }}
+  .konfeti {{ display:none !important; }}
+}}
 @media (max-width:640px) {{
   .adimlar {{ grid-template-columns:1fr; }}
-  .karsilama h1 {{ font-size:1.75rem; }}
-  .ozet {{ gap:.4rem; }}
+  .karsilama h1 {{ font-size:1.95rem; }}
+  .ekran-baslik {{ font-size:1.7rem; }}
+  .ozet {{ gap:.45rem; }}
   .ozet .kutu {{ padding:.6rem .55rem; }}
-  .ozet .deger {{ font-size:1.02rem; }}
+  .ozet .deger {{ font-size:1.1rem; }}
   .ozet .etiket {{ font-size:.78rem; }}
+  .ilerleme .adim-cip {{ font-size:.82rem; padding-right:.6rem; }}
+  .ilerleme .cizgi {{ width:.7rem; }}
   .block-container {{ padding-left:.9rem; padding-right:.9rem; }}
   /* Yan yana düğmeler (gezinme, eylemler) mobilde alt alta yığılmasın */
-  [data-testid="stHorizontalBlock"] {{ flex-wrap:nowrap !important; gap:.4rem !important; }}
+  [data-testid="stHorizontalBlock"] {{ flex-wrap:nowrap !important; gap:.45rem !important; }}
   /* Streamlit dar ekranda her sütuna %100 en küçük genişlik verir; nowrap ile birleşince
      sütunlar ekran dışına taşar (375px'te "Panom"/"Yardım" görünmüyordu). Eşit paylaştır. */
   [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
     min-width:0 !important; width:auto !important; flex:1 1 0 !important; }}
-  [data-testid="stHorizontalBlock"] .stButton > button {{
-    font-size:.88rem; padding:.5rem .4rem; min-height:46px; }}
+  [data-testid="stHorizontalBlock"] .stButton button {{
+    font-size:.9rem; padding:.4rem .3rem; min-height:46px; box-shadow:var(--golge-sm); }}
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -355,6 +462,33 @@ def ust_bar() -> None:
     st.markdown("<div style='height:.4rem'></div>", unsafe_allow_html=True)
 
 
+ADIMLAR = ("Anlat", "Hazırla", "Paylaş")
+
+
+def adim_gostergesi(aktif: int) -> None:
+    """Anlat → Hazırla → Paylaş ilerleme göstergesi; aktif: 0, 1 ya da 2."""
+    parcalar = []
+    for i, ad in enumerate(ADIMLAR):
+        if i:
+            parcalar.append(f'<span class="cizgi{" dolu" if i <= aktif else ""}"></span>')
+        durum = " bitti" if i < aktif else (" aktif" if i == aktif else "")
+        mevcut = ' aria-current="step"' if i == aktif else ""
+        parcalar.append(f'<span class="adim-cip{durum}"{mevcut}>'
+                        f'<b>{"✓" if i < aktif else i + 1}</b>{ad}</span>')
+    st.markdown('<div class="ilerleme" aria-label="İlerleme">' + "".join(parcalar) + "</div>",
+                unsafe_allow_html=True)
+
+
+def konfeti() -> None:
+    """İçerik ilk hazırlandığında bir kez düşen konfeti (hareketi azalt tercihinde gizlenir)."""
+    renkler = ["#FF5C8A", "#FFD34D", "#4DD4FF", "#7BE495", "#8A2A6B"]
+    parcalar = "".join(
+        f'<i class="konfeti" style="left:{(i * 37) % 100}%;background:{renkler[i % 5]};'
+        f'animation-delay:{(i % 7) * 0.09:.2f}s;width:{8 + (i % 3) * 3}px"></i>'
+        for i in range(36))
+    st.markdown(f'<div aria-hidden="true">{parcalar}</div>', unsafe_allow_html=True)
+
+
 def kalite_ipucu(ig: str, sh: str, kategori: str) -> None:
     """Kalite modelini sade, jargonsuz dille gösterir (varsa)."""
     model = kalite.model_al()
@@ -376,8 +510,8 @@ def kalite_ipucu(ig: str, sh: str, kategori: str) -> None:
 def ekran_karsilama() -> None:
     st.markdown("""
     <div class="karsilama">
-      <div class="amblem">🧵</div>
-      <h1>El emeğinizi, <span class="slogan">arayanların bulacağı<br>bir dile</span> çeviriyoruz.</h1>
+      <div class="amblem" aria-hidden="true">🧶</div>
+      <h1>El emeğinizi, <span class="vurgu">arayanların bulacağı</span> bir dile çeviriyoruz.</h1>
       <p class="aciklama">Ürününüzü kendi cümlelerinizle anlatın; biz sizin için
          Instagram gönderinizi ve satış sayfası yazınızı hazırlayalım.
          Yazı yazmayı ya da pazarlamayı bilmenize gerek yok.</p>
@@ -413,7 +547,9 @@ def ekran_karsilama() -> None:
 # ===========================================================================
 def ekran_anlat() -> None:
     ust_bar()
-    st.markdown('<div class="ekran-baslik">Ne ürettiğinizi anlatın</div>',
+    adim_gostergesi(0)
+    st.markdown('<div class="ekran-baslik">Ne ürettiniz? '
+                '<span class="yumak" aria-hidden="true">🧶</span></div>',
                 unsafe_allow_html=True)
     st.markdown('<div class="ekran-alt">Nasıl konuşuyorsanız öyle yazın. '
                 'Malzeme, ne kadar sürdüğü, nasıl yaptığınız… aklınıza ne gelirse.</div>',
@@ -484,6 +620,7 @@ def ekran_anlat() -> None:
                     an = takvim.simdi()          # sunucu UTC olsa da Türkiye saati
                     kayit_id = takvim.yeni_id()
                     st.session_state.sonuc = sonuc
+                    st.session_state.kutlama = True          # sonuç ekranında bir kez konfeti
                     st.session_state.ozenli_istendi = ozenli
                     st.session_state.aktif_id = kayit_id
                     st.session_state.gecmis.insert(0, {
@@ -592,11 +729,14 @@ def ekran_sonuc() -> None:
         st.session_state.aktif_id = kayit["id"]
     kategori = kayit.get("kategori") or st.session_state.kategori_key
 
+    adim_gostergesi(2)
+    if st.session_state.pop("kutlama", False):
+        konfeti()
     st.markdown('<div class="ekran-baslik">İşte içerikleriniz 🎉</div>',
                 unsafe_allow_html=True)
-    st.markdown('<div class="ekran-alt">Beğenmediğiniz yeri doğrudan '
-                'düzeltebilirsiniz. Hazır olunca kopyalayıp paylaşın.</div>',
-                unsafe_allow_html=True)
+    st.markdown('<div class="kutlama"><span class="rozet">✓ Hazır</span><div>'
+                '<b>İçerikleriniz hazırlandı.</b><br>Okuyun, dilediğiniz yeri düzeltin, '
+                'sonra kopyalayıp paylaşın.</div></div>', unsafe_allow_html=True)
     # Özenli yazım istendi ama o model yoğun/yavaş olduğu için hızlı modele geçildiyse söyle.
     if (st.session_state.get("ozenli_istendi") and sonuc.model
             and sonuc.model != uret.MODEL_OZENLI):
@@ -1030,7 +1170,7 @@ def ekran_gelistirici() -> None:
     st.markdown('<div class="ekran-baslik dev-baslik">🔧 Geliştirici / Rapor</div>',
                 unsafe_allow_html=True)
     st.caption("Bu bölüm capstone raporu içindir; son kullanıcı akışında görünmez. "
-               "Kenar çubuğundaki geçişten kapatabilirsiniz.")
+               "Kenar çubuğundaki düğmeden kapatabilirsiniz.")
     t_karsi, t_toplu, t_panel = st.tabs(
         ["Prompt karşılaştırma", "Toplu üretim", "Test paneli & model"])
 
