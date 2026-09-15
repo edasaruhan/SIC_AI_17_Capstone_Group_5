@@ -1,0 +1,16 @@
+# Gizli bilgiler imaja ASLA girmemeli; platformda ortam değişkeni olarak verilir
+.env
+*.key
+api_anahtarlari.json
+.streamlit/secrets.toml
+
+.git
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.log
+ciktilar/
+models/
+tests/
+data/trends_onbellek.json

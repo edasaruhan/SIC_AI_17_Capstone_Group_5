@@ -26,6 +26,7 @@ uyumlu, çok kanallı pazarlama içeriğine** (Instagram gönderisi + Shopier a�
 | 🟣 **Hikâye, WhatsApp, hashtag** | Aynı üründen 3 karelik Instagram hikâyesi, WhatsApp durum/müşteri mesajı ve gruplanmış hashtag seti. Hashtag'ler ayrıca kural tabanlı süzgeçten geçer: anlatımda olmayan malzeme ya da iddia (#doğalkumaş, #mucize…) çıkarılır. |
 | 📅 **İçerik takvimi** | "Ne zaman paylaşacaksınız?" → seçilen günlere otomatik yerleşim; **telefon takvimine eklenen .ics** dosyası paylaşımdan 30 dk önce hatırlatır, metin hatırlatmanın içindedir. |
 | 🏠 **Pano** | Hazır içerik, bu haftaki paylaşımlar, sıradaki paylaşım; "paylaştım" işareti, zamanı geçeni yarına alma. |
+| 🔌 **İş ortakları için REST API** | Aynı çekirdek FastAPI ile dışarı açılır: içerik, formatlar, ses → metin, kalite, anahtar kelime, takvim. Anahtar başına günlük kota ve hız sınırı, `/docs` belgesi, Docker. Ayrıntı: **[API.md](API.md)** |
 | 💾 **Kaydet / yükle** | Plan sunucuda saklanmaz (KVKK); kullanıcı dosyayı kendi cihazına kaydedip sonra geri yükler. |
 | 🎨 **Ton profili** | Üretici kendi eski metinlerini yapıştırır; model onun üslubuyla yazar. |
 | ⚖️ **Prompt karşılaştırma** | zero-shot / few-shot / chain-of-thought çıktıları yan yana (rapor kanıtı). |
@@ -94,7 +95,18 @@ python src/toplu_test.py --hepsi   # üç tekniği de çalıştır (karşılaşt
 ```bash
 python tests/test_takvim.py        # planlama, .ics, kaydet/yükle doğrulaması
 python tests/test_hashtag.py       # hashtag etik süzgeci
+python tests/test_api.py           # REST API: kimlik, kota, hata kodları, KVKK
 ```
+
+### REST API (iş ortakları)
+
+```bash
+pip install -r requirements-api.txt
+python src/api_guvenlik.py yeni --ad "Kooperatif A" --kota 500   # anahtar oluştur
+uvicorn api:app --app-dir src --reload                           # → http://127.0.0.1:8000/docs
+```
+
+Kimlik doğrulama, kota, hata kodları, KVKK ve Render / Cloud Run yayını: **[API.md](API.md)**
 
 ---
 
@@ -106,6 +118,8 @@ Uretken_Kadin/
 │   ├── app.py               # Streamlit arayüzü (adım adım akış, pano, geliştirici modu)
 │   ├── uret.py              # Çekirdek: Gemini üretimi, STT, ek formatlar, metrikler
 │   ├── takvim.py            # İçerik takvimi: planlama, .ics, kaydet/yükle
+│   ├── api.py               # İş ortakları için REST API (FastAPI)
+│   ├── api_guvenlik.py      # API anahtarları, günlük kota, hız sınırı
 │   ├── prompts.py           # Prompt şablonları + etik kısıtlar + ton profili
 │   ├── trends.py            # Google Trends (pytrends) SEO kelime entegrasyonu
 │   ├── kalite.py            # İçerik kalite modeli: öznitelikler + çıkarım
@@ -120,7 +134,10 @@ Uretken_Kadin/
 ├── models/                  # (üretilir) eğitilmiş kalite modeli
 ├── tests/                   # API gerektirmeyen birim testleri
 ├── ciktilar/                # toplu test + model çıktıları (kanıt)
-├── requirements.txt
+├── requirements.txt         # Streamlit arayüzü
+├── requirements-api.txt     # yalnızca REST API
+├── Dockerfile               # API imajı (Render / Cloud Run)
+├── API.md                   # iş ortağı rehberi + işletim
 ├── KURULUM.md               # ayrıntılı kurulum
 ├── ilerleme_baris.md        # Barış'ın eklediklerinin gelişim günlüğü
 └── README.md

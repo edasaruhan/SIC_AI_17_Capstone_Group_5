@@ -1,6 +1,8 @@
 # API anahtarlari - ASLA GitHub'a gitmemeli
 .env
 *.key
+# Is ortagi API anahtar ozetleri (src/api_guvenlik.py uretir)
+api_anahtarlari.json
 
 # Python
 __pycache__/
