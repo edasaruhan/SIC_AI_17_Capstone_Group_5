@@ -20,4 +20,6 @@ USER uygulama
 
 EXPOSE 8000
 # Tek işçi: kota sayaçları bellekte (bkz. API.md → Ölçekleme). Platform PORT değişkenini verir.
-CMD ["sh", "-c", "uvicorn api:app --app-dir src --host 0.0.0.0 --port ${PORT} --workers 1 --proxy-headers"]
+# --no-access-log: uvicorn'un istemci IP'si içeren erişim günlüğü kapalı; api.py yalnızca yol,
+# durum, iş ortağı adı ve süreyi yazar (KVKK veri minimizasyonu, API.md ile tutarlı).
+CMD ["sh", "-c", "uvicorn api:app --app-dir src --host 0.0.0.0 --port ${PORT} --workers 1 --proxy-headers --no-access-log"]

@@ -22,7 +22,7 @@ from typing import Annotated, Literal
 from fastapi import Depends, FastAPI, File, Form, Query, Request, Response, Security, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -284,6 +284,9 @@ def uygulama_olustur(anahtarlar: dict[str, guv.IsOrtagi] | None = None,
             return _hata_yaniti(413, "istek_cok_buyuk", "İstek gövdesi çok büyük.")
         baslangic = time.perf_counter()
         yanit = await call_next(request)
+        # Platformun birkaç saniyede bir yaptığı başarılı sağlık kontrolleri günlüğü doldurmasın.
+        if request.url.path == "/saglik" and yanit.status_code == 200:
+            return yanit
         # Gövde (anlatım, ses) ve anahtar ASLA günlüğe yazılmaz — KVKK veri minimizasyonu.
         log.info("%s %s %s ortak=%s %.0fms", request.method, request.url.path,
                  yanit.status_code, getattr(request.state, "is_ortagi", "-"),
@@ -351,6 +354,11 @@ def uygulama_olustur(anahtarlar: dict[str, guv.IsOrtagi] | None = None,
             raise ApiHatasi(502, "model_hatasi", "İçerik üretilemedi; tekrar deneyin.") from None
 
     # --- uç noktalar ------------------------------------------------------
+    @app.get("/", include_in_schema=False)
+    def kok():
+        """Kök adresi açan kişi 404 yerine belge sayfasını görsün."""
+        return RedirectResponse("/docs")
+
     @app.get("/saglik", tags=["Sistem"], response_model=SaglikYaniti, summary="Sunucu ayakta mı?")
     def saglik():
         return SaglikYaniti(durum="ok", surum=SURUM)

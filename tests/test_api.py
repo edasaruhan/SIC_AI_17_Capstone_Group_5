@@ -98,6 +98,27 @@ def test_saglik_anahtarsiz_acik():
     assert r.status_code == 200 and r.json() == {"durum": "ok", "surum": api.SURUM}
 
 
+def test_kok_adres_belgeye_yonlendirir_saglik_kontrolu_gunluge_yazilmaz():
+    kayitlar = []
+
+    class Toplayici(logging.Handler):
+        def emit(self, record):
+            kayitlar.append(record.getMessage())
+    c = istemci()
+    r = c.get("/", follow_redirects=False)
+    assert r.status_code == 307 and r.headers["location"] == "/docs"
+    toplayici = Toplayici()
+    api.log.addHandler(toplayici)
+    try:
+        c.get("/saglik")
+        c.get("/docs")
+    finally:
+        api.log.removeHandler(toplayici)
+    assert not any("/saglik" in k for k in kayitlar)
+    assert any("/docs 200" in k for k in kayitlar)
+    assert "/" not in c.get("/openapi.json").json()["paths"]
+
+
 def test_anahtar_yok_ve_gecersiz_401():
     c = istemci()
     r = c.post("/v1/icerik", json=ICERIK)
