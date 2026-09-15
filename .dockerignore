@@ -10,7 +10,7 @@ venv/
 __pycache__/
 *.pyc
 *.log
-ciktilar/
+# ciktilar/ arayüz imajına girer (Dockerfile.arayuz); API imajı yalnızca src/ ve CSV'yi kopyalar
 models/
 tests/
 data/trends_onbellek.json

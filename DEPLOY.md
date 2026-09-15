@@ -6,7 +6,39 @@ Bu rehber, uygulamayı **ücretsiz Streamlit Community Cloud**'a alıp herkesin
 > Neden Streamlit Cloud? Ücretsiz, GitHub'a bağlı, API anahtarını "secret" olarak
 > güvenle saklar ve her `git push` sonrası otomatik günceller. Bu proje için birebir.
 
+> ⚠️ **İzin notu (15.09.2026):** Streamlit Community Cloud GitHub'a OAuth ile bağlanır ve
+> tek depo seçtirmez; özel depo için hesabın **tüm özel depolarına** erişim ister. Bu yüzden
+> arayüzü de **Render**'da yayınlamaya karar verdik — Render'ın GitHub izni yalnızca
+> `Uretken_Kadin` deposuyla sınırlıdır. Streamlit Cloud adımları aşağıda alternatif olarak duruyor.
+
 ---
+
+## Render'da yayınlama (tercih edilen)
+
+REST API (`Dockerfile`) ve arayüz (`Dockerfile.arayuz`) aynı depodan **iki ayrı Render
+servisi** olarak çalışır. API servisinin adımları: [API.md](API.md) → Render'a yayınlama.
+
+1. Render → **+ New → Web Service** → `Tugce-hub/Uretken_Kadin`
+2. **Name:** `uretken-kadin` (ad başkası tarafından alınmışsa Render adrese ek getirir) ·
+   **Language:** Docker · **Branch:** `main` · **Region:** Frankfurt (EU Central)
+3. **Instance Type:** Free
+4. **Environment Variables:**
+   - `GEMINI_API_KEY` — Gemini anahtarı
+   - `API_ADRESI` = `https://uretken-kadin-api.onrender.com` ("Firmalar için API" sayfası için)
+   - (isteğe bağlı) `API_ILETISIM` — anahtar başvurusu için **kurumsal** iletişim adresi
+5. **Advanced → Dockerfile Path:** `./Dockerfile.arayuz` · **Health Check Path:** `/_stcore/health`
+6. **Deploy web service** — birkaç dakikada `https://<ad>.onrender.com` adresi hazır olur.
+
+Yerel Docker ölçümleri (15.09.2026): imaj 1,25 GB · açılış ~1 sn · bir kullanıcıyla içerik
+üretimi ve kalite modeli eğitimi sonrası bellek tepesi ~200 MB (ücretsiz plan sınırı 512 MB).
+
+- Ücretsiz örnek bir süre istek gelmezse uyur; ilk açılış ~1 dakika sürebilir.
+- Uygulama herkese açıktır ve her içerik üretimi sizin Gemini kotanızı kullanır.
+- `main` dalına her `git push` iki servisi de otomatik yeniden dağıtır.
+
+---
+
+## Alternatif: Streamlit Community Cloud
 
 ## Ön koşullar (kodda hazır ✅)
 
