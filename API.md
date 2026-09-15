@@ -248,5 +248,7 @@ Kota ve hız sınırı sayaçları **bellekte** tutulur. Bu yüzden:
   geçirme önceliği içindir. Sunucu açılışında bellekte eğitilir (birkaç saniye).
 - Google Trends sık `429` döndürür; bu durumda sabit kategori kelimelerine düşülür
   (`anahtar_kelime_kaynagi: "varsayılan"`).
-- Docker imajı bu sürümde yerelde derlenip denenmedi (geliştirme makinesinde Docker kapalıydı);
-  ilk yayında `/saglik` ve `/docs` kontrol edilmelidir.
+- Docker imajı yerelde derlenip denendi (15.09.2026): imaj ~800 MB, ilk derleme ~5 dk, açılış
+  ~2 sn; tüm uç noktalar gerçek Gemini ile çalıştı, imajda `.env`/anahtar dosyası yok, root
+  olmayan kullanıcıyla çalışıyor. Derleme sırasında Docker diskinde ~2 GB boş yer gerekir.
+  Platformda ilk yayından sonra `/saglik` ve `/docs` yine kontrol edilmelidir.
