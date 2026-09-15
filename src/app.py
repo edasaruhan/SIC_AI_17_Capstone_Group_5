@@ -18,6 +18,7 @@ import html
 import io
 import json
 import os
+import re
 from datetime import timedelta
 
 import streamlit as st
@@ -37,7 +38,8 @@ st.set_page_config(page_title="Üretken Kadın — Emeğin dijital sesi",
 
 # Streamlit Cloud'da API anahtarı "secret" olarak gelir; uret.py os.getenv okur.
 try:
-    for _a in ("GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_MODEL_OZENLI", "GEMINI_MODEL_SES"):
+    for _a in ("GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_MODEL_OZENLI", "GEMINI_MODEL_SES",
+               "API_ADRESI", "API_ILETISIM"):
         if _a in st.secrets:
             os.environ.setdefault(_a, str(st.secrets[_a]))
 except Exception:
@@ -72,7 +74,7 @@ ORNEKLER = [
 # ---------------------------------------------------------------------------
 # Oturum durumu
 # ---------------------------------------------------------------------------
-EKRANLAR = ("karsilama", "anlat", "sonuc", "pano", "iceriklerim", "ton", "yardim")
+EKRANLAR = ("karsilama", "anlat", "sonuc", "pano", "iceriklerim", "ton", "yardim", "api")
 
 varsayilanlar = {
     "ekran": "karsilama", "yigin": [], "sonuc": None, "gecmis": [],
@@ -144,6 +146,11 @@ with st.sidebar:
         st.caption("Tanımlı değil.")
     if st.button("Sizin gibi yazmasını öğretin", use_container_width=True):
         git("ton")
+    st.divider()
+    st.caption("Firmalar ve kurumlar için")
+    if st.button("🔌 API ile entegrasyon", use_container_width=True,
+                 help="Üretken Kadın'ı kendi platformunuza bağlamak için belgeler"):
+        git("api")
     st.divider()
     gelistirici = st.toggle("🔧 Geliştirici / rapor modu", value=False,
                             help="Prompt karşılaştırma, test paneli ve model "
@@ -275,6 +282,8 @@ textarea:focus-visible, select:focus-visible, [data-baseweb="select"]:focus-with
   line-height:1.2; overflow-wrap:anywhere; }}
 .ozet .etiket {{ font-size:.86rem; color:var(--muted); margin-top:.15rem; }}
 .gun-baslik {{ font-family:'Lexend'; font-weight:600; color:var(--primary); margin:1.1rem 0 .35rem; }}
+/* Geniş Markdown tabloları (API belgesi) dar ekranda sayfayı değil yalnız kendini kaydırsın */
+[data-testid="stMarkdownContainer"] table {{ display:block; max-width:100%; overflow-x:auto; }}
 
 @keyframes gir {{ from {{opacity:0; transform:translateY(10px);}} to {{opacity:1; transform:none;}} }}
 @media (prefers-reduced-motion: reduce) {{ *,*::before,*::after {{ animation:none !important; transition:none !important; }} }}
@@ -929,6 +938,85 @@ def ekran_yardim() -> None:
 
 
 # ===========================================================================
+# EKRAN: FİRMALAR İÇİN API — belgeler API.md'den okunur (tek kaynak)
+# ===========================================================================
+API_SEKMELERI = [("🚀 Hızlı başlangıç", ["1", "2"]), ("📚 Uç noktalar", ["3"]),
+                 ("⏱️ Kota ve hatalar", ["4", "5", "7"]), ("🛡️ KVKK ve sorumluluklar", ["6"])]
+
+
+@st.cache_data(show_spinner=False)
+def api_rehberi(yol: str, adres: str, _degisme: float) -> dict[str, tuple[str, str]]:
+    """
+    API.md'nin iş ortağı kısmını {"1": (başlık, gövde), ...} olarak döndürür.
+    "# İşletim rehberi" sonrası (anahtar yönetimi, yayına alma) firmalara gösterilmez.
+    _degisme: dosya değişince önbellek tazelensin diye değişiklik zamanı.
+    """
+    with open(yol, encoding="utf-8") as f:
+        ortak = f.read().split("\n# İşletim rehberi")[0]
+    if adres:
+        ortak = ortak.replace("https://API-ADRESI", adres.rstrip("/"))
+    bolumler = {}
+    for parca in re.split(r"\n(?=## )", ortak)[1:]:
+        baslik, _, govde = parca.partition("\n")
+        no = re.match(r"##\s*(\d+)\.\s*(.*)", baslik)
+        if no:
+            bolumler[no.group(1)] = (no.group(2).strip(),
+                                     re.sub(r"(\n\s*---\s*)+$", "", govde.strip()).strip())
+    return bolumler
+
+
+def ekran_api() -> None:
+    ust_bar()
+    adres = os.getenv("API_ADRESI", "").strip()
+    iletisim = os.getenv("API_ILETISIM", "").strip()
+    st.markdown('<div class="ekran-baslik">🔌 Firmalar için API</div>', unsafe_allow_html=True)
+    st.markdown('<div class="ekran-alt">E-ticaret platformları, kooperatifler ve girişimcilik '
+                'programları Üretken Kadın\'ın içerik motorunu kendi sistemlerine bağlayabilir — '
+                'aynı etik kurallar, aynı insan onayı ilkesiyle.</div>', unsafe_allow_html=True)
+    yol = os.path.join(KOK, "API.md")
+    try:
+        bolumler = api_rehberi(yol, adres, os.path.getmtime(yol))
+    except OSError:
+        st.warning("API belgesi (API.md) bulunamadı.")
+        return
+
+    uc_nokta = len(re.findall(r"^\| `(?:GET|POST)`", bolumler.get("3", ("", ""))[1], re.M))
+    kutular = [(uc_nokta, "uç nokta"), ("REST", "JSON · OpenAPI"),
+               ("0", "sunucuda saklanan anlatım")]
+    st.markdown('<div class="ozet">' + "".join(
+        f'<div class="kutu"><div class="deger">{d}</div><div class="etiket">{e}</div></div>'
+        for d, e in kutular) + '</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="adimlar">
+      <div class="adim"><div class="no">1</div><h4>Başvurun</h4>
+        <p>Kurumunuzu ve kullanım amacınızı iletin; size özel API anahtarı ve günlük kota tanımlanır.</p></div>
+      <div class="adim"><div class="no">2</div><h4>Deneyin</h4>
+        <p>Canlı belgede (/docs) anahtarınızla istekleri deneyin, sonra kendi sunucunuza ekleyin.</p></div>
+      <div class="adim"><div class="no">3</div><h4>Üreticilerinize açın</h4>
+        <p>Metni üreticiye onaylatarak yayımlayın; sesli anlatım için açık rıza alın.</p></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.info(f"🔑 **API anahtarı başvurusu:** {iletisim}" if iletisim
+            else "🔑 API anahtarı almak için Üretken Kadın ekibiyle iletişime geçin.")
+    if adres:
+        st.link_button("📖 Canlı API belgesini aç (/docs)", f"{adres.rstrip('/')}/docs",
+                       use_container_width=True)
+
+    if not bolumler:
+        st.warning("API belgesi okunamadı.")
+        return
+    sekmeler = st.tabs([ad for ad, _ in API_SEKMELERI])
+    for sekme, (_, numaralar) in zip(sekmeler, API_SEKMELERI):
+        with sekme:
+            for no in numaralar:
+                if no in bolumler:
+                    baslik, govde = bolumler[no]
+                    st.markdown(f"#### {baslik}")
+                    st.markdown(govde)
+
+
+# ===========================================================================
 # GELİŞTİRİCİ / RAPOR MODU (capstone kanıtı — kullanıcıdan gizli)
 # ===========================================================================
 def _olcumler(ig, sh, kategori):
@@ -1073,5 +1161,7 @@ else:
         ekran_ton()
     elif ekran == "yardim":
         ekran_yardim()
+    elif ekran == "api":
+        ekran_api()
     else:
         ekran_karsilama()

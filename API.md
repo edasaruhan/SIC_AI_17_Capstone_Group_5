@@ -7,6 +7,10 @@ aynı kalite ön filtresi.
 **Kimler için?** E-ticaret ve pazaryeri platformları (satıcı paneline "açıklamamı yaz"
 düğmesi), kadın kooperatifleri ve üretici ağları, belediye/STK girişimcilik programları.
 
+**Başlamak için 3 adım:** ① Bize başvurun; kurumunuza özel API anahtarı ve günlük kota
+tanımlansın · ② `/docs` sayfasında anahtarınızla istekleri canlı deneyin · ③ Kendi sunucunuza
+ekleyin; üretilen metni üreticiye onaylatarak yayımlayın.
+
 > Canlı, denenebilir belge: sunucu adresinin sonuna `/docs` ekleyin (Swagger arayüzü).
 
 ---
@@ -32,6 +36,18 @@ yanit = httpx.post(
 yanit.raise_for_status()
 icerik = yanit.json()
 print(icerik["instagram"], icerik["shopier"], sep="\n\n")
+```
+
+```javascript
+// Node.js 18+ — anahtar ortam değişkeninde, istek sunucu tarafından atılır
+const yanit = await fetch("https://API-ADRESI/v1/icerik", {
+  method: "POST",
+  headers: { "X-API-Key": process.env.UK_API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({ anlatim: "El örgüsü bebek battaniyesi yapıyorum. ...", kategori: "Tekstil / El sanatı" }),
+  signal: AbortSignal.timeout(90_000),
+});
+if (!yanit.ok) throw new Error((await yanit.json()).hata.mesaj);
+const icerik = await yanit.json();
 ```
 
 Yanıt (örnek; metinler her çağrıda farklıdır):

@@ -51,6 +51,9 @@ Bu rehber, uygulamayı **ücretsiz Streamlit Community Cloud**'a alıp herkesin
    # GEMINI_MODEL = "gemini-3.5-flash-lite"        # hızlı, varsayılan
    # GEMINI_MODEL_OZENLI = "gemini-3.6-flash"      # "Daha özenli yaz" açıkken
    # GEMINI_MODEL_SES = "gemini-3.6-flash"         # ses → metin
+   # "Firmalar için API" sayfası (kenar çubuğu) — REST API yayındaysa:
+   # API_ADRESI = "https://api-adresiniz.onrender.com"   # belgelerde adres ve /docs bağlantısı
+   # API_ILETISIM = "api@kurum-adresi.com"               # anahtar başvurusu (kurumsal adres)
    ```
    > Bu anahtar yalnızca sunucuda saklanır; koda veya GitHub'a yazılmaz.
 
