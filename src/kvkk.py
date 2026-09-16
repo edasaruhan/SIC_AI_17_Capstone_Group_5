@@ -40,6 +40,13 @@ METIN_AYDINLATMA = ("Yazdığınız anlatım, içerik üretmek için Google Gemi
                     "gönderilir (yurt dışına aktarım). Kişisel/hassas bilgi "
                     "(ad-soyad, adres, telefon) yazmayın — buna gerek yok.")
 
+# Görsel stüdyosunda fotoğraf yükleme alanının altında gösterilir
+FOTO_AYDINLATMA = ("Yalnızca ürün fotoğrafı yükleyin; insan yüzü, adres ya da kişisel bilgi içeren "
+                   "fotoğraf yüklemeyin. Hızlı düzeltme, paylaşım görseli ve katalog bu sunucuda "
+                   "hazırlanır. \"Fotoğraftan anlatım\" ve \"arka plan değiştirme\" ise fotoğrafı "
+                   "Google Gemini'ye gönderir (yurt dışına aktarım). Fotoğraflar kalıcı olarak "
+                   "saklanmaz; sayfayı kapatınca silinir.")
+
 # Pano → Kaydet / yükle bölümünde gösterilir
 KAYIT_ACIKLAMA = ("Planınız sunucumuzda saklanmaz. Kaydettiğiniz dosya yalnızca sizin "
                   "cihazınıza iner; bir dahaki sefere buradan yükleyip kaldığınız yerden "

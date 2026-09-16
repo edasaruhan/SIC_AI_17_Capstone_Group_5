@@ -9,6 +9,7 @@ Terminalden denemek için:
     python src/uret.py
 """
 
+import json
 import os
 import re
 from dataclasses import dataclass
@@ -106,7 +107,8 @@ def _gecici_hata_mi(hata: Exception) -> bool:
 
 def _modelle_uret(client: genai.Client, birincil: str, contents,
                   yedek_model: bool = True,
-                  zaman_asimi_sn: float | None = None) -> tuple[str, str]:
+                  zaman_asimi_sn: float | None = None,
+                  json_yanit: bool = False) -> tuple[str, str]:
     """
     İsteği birincil modele gönderir; geçici bir hata olursa diğer modeli bir kez dener.
 
@@ -122,11 +124,13 @@ def _modelle_uret(client: genai.Client, birincil: str, contents,
         adaylar += [m for m in (MODEL, MODEL_OZENLI) if m != birincil]
     son_hata = None
     for model in dict.fromkeys(adaylar):
-        config = None
+        ayarlar = {}
         if zaman_asimi_sn and model != MODEL:
             sinir_ms = int(max(zaman_asimi_sn, _EN_KISA_SINIR_SN) * 1000)
-            config = types.GenerateContentConfig(
-                http_options=types.HttpOptions(timeout=sinir_ms))
+            ayarlar["http_options"] = types.HttpOptions(timeout=sinir_ms)
+        if json_yanit:
+            ayarlar["response_mime_type"] = "application/json"
+        config = types.GenerateContentConfig(**ayarlar) if ayarlar else None
         try:
             yanit = client.models.generate_content(model=model, contents=contents,
                                                    config=config)
@@ -323,6 +327,33 @@ def hashtag_denetle(metin: str, anlatim: str) -> tuple[str, list[str]]:
     temiz = re.sub(r"#\w+", suz, metin)
     temiz = "\n".join(re.sub(r"[ \t]{2,}", " ", s).strip() for s in temiz.splitlines())
     return temiz, list(dict.fromkeys(cikan))
+
+
+def metin_uret(contents, ozenli: bool = False, json_yanit: bool = False,
+               client: genai.Client | None = None) -> str:
+    """
+    Görsel stüdyosu ve satış araçları için ortak model çağrısı: model seçimi, süre sınırı
+    ve yedeğe geçiş içerik üretimiyle aynı kurallara uyar. contents metin ya da
+    [Part, metin] listesi (fotoğraf) olabilir.
+    """
+    client = client or istemci_olustur()
+    return _modelle_uret(client, model_sec(ozenli), contents, json_yanit=json_yanit,
+                         zaman_asimi_sn=OZENLI_ZAMAN_ASIMI_SN)[0]
+
+
+def json_coz(metin: str) -> dict:
+    """Model JSON yanıtını okur; kod bloğu işaretlerini temizler. Okunamazsa ValueError."""
+    temiz = re.sub(r"^```(?:json)?\s*|\s*```$", "", (metin or "").strip())
+    try:
+        veri = json.loads(temiz)
+    except json.JSONDecodeError:
+        eslesme = re.search(r"\{.*\}", temiz, re.DOTALL)
+        if not eslesme:
+            raise ValueError("Yanıt okunamadı, tekrar deneyin.") from None
+        veri = json.loads(eslesme.group(0))
+    if not isinstance(veri, dict):
+        raise ValueError("Yanıt beklenen biçimde değil, tekrar deneyin.")
+    return veri
 
 
 def seo_kapsami(metin: str, anahtar_kelimeler: list[str]) -> int:

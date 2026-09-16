@@ -26,6 +26,8 @@ uyumlu, çok kanallı pazarlama içeriğine** (Instagram gönderisi + Shopier a�
 | 🟣 **Hikâye, WhatsApp, hashtag** | Aynı üründen 3 karelik Instagram hikâyesi, WhatsApp durum/müşteri mesajı ve gruplanmış hashtag seti. Hashtag'ler ayrıca kural tabanlı süzgeçten geçer: anlatımda olmayan malzeme ya da iddia (#doğalkumaş, #mucize…) çıkarılır. |
 | 📅 **İçerik takvimi** | "Ne zaman paylaşacaksınız?" → seçilen günlere otomatik yerleşim; **telefon takvimine eklenen .ics** dosyası paylaşımdan 30 dk önce hatırlatır, metin hatırlatmanın içindedir. |
 | 🏠 **Pano** | Hazır içerik, bu haftaki paylaşımlar, sıradaki paylaşım; "paylaştım" işareti, zamanı geçeni yarına alma. |
+| 📸 **Görsel stüdyosu** | Fotoğraf kalite uyarısı (karanlık/bulanık/düşük çözünürlük), ürünün rengine dokunmayan **hızlı düzeltme**, **fotoğraftan anlatım** (yalnızca görüneni yazar, bilinmeyeni sorar), **arka plan değiştirme** (Gemini görsel modeli — ücretli katman gerektirir; "ürünüm değişmedi" onayı olmadan indirilemez), Instagram kare/hikâye **paylaşım görseli**, WhatsApp'ta paylaşılabilir **PDF katalog**. |
+| 💰 **Satış araçları** | Emeği de sayan şeffaf **fiyat hesaplayıcı** (komisyon, kargo, kâr, gerçek saatlik kazanç), **müşteriye cevap** (hazır şablonlar + mesaja özel taslak; fiyat/kargo uydurmaz, [yer tutucu] bırakır), **pazaryeri ilanı** (Trendyol, Hepsiburada, Etsy-İngilizce; eksik bilgileri listeler, iddialı etiketleri süzer) + çeviri, **özel gün kampanyaları** (tarihler kuralla hesaplanır, üç hatırlatma takvime eklenir). |
 | 🔌 **İş ortakları için REST API** | Aynı çekirdek FastAPI ile dışarı açılır: içerik, formatlar, ses → metin, kalite, anahtar kelime, takvim. Anahtar başına günlük kota ve hız sınırı, `/docs` belgesi, Docker. Ayrıntı: **[API.md](API.md)** |
 | 💾 **Kaydet / yükle** | Plan sunucuda saklanmaz (KVKK); kullanıcı dosyayı kendi cihazına kaydedip sonra geri yükler. |
 | 🎨 **Ton profili** | Üretici kendi eski metinlerini yapıştırır; model onun üslubuyla yazar. |
@@ -96,6 +98,9 @@ python src/toplu_test.py --hepsi   # üç tekniği de çalıştır (karşılaşt
 python tests/test_takvim.py        # planlama, .ics, kaydet/yükle doğrulaması
 python tests/test_hashtag.py       # hashtag etik süzgeci
 python tests/test_api.py           # REST API: kimlik, kota, hata kodları, KVKK
+python tests/test_satis.py         # fiyat formülü, özel gün tarihleri, ilan sınırları
+python tests/test_gorsel.py        # kalite ölçümü, hızlı düzeltme, paylaşım görseli, katalog
+python tests/test_arayuz_araclar.py  # görsel stüdyosu ve satış araçları ekranları (AppTest)
 ```
 
 ### REST API (iş ortakları)
@@ -118,6 +123,9 @@ Uretken_Kadin/
 │   ├── app.py               # Streamlit arayüzü (adım adım akış, pano, geliştirici modu)
 │   ├── uret.py              # Çekirdek: Gemini üretimi, STT, ek formatlar, metrikler
 │   ├── takvim.py            # İçerik takvimi: planlama, .ics, kaydet/yükle
+│   ├── gorsel.py            # Görsel stüdyosu: kalite, düzeltme, arka plan, paylaşım görseli, katalog
+│   ├── satis.py             # Satış araçları: fiyat, müşteriye cevap, pazaryeri ilanı, özel günler
+│   ├── ekran_araclar.py     # Araç kutusu, görsel stüdyosu ve satış araçları ekranları
 │   ├── api.py               # İş ortakları için REST API (FastAPI)
 │   ├── api_guvenlik.py      # API anahtarları, günlük kota, hız sınırı
 │   ├── prompts.py           # Prompt şablonları + etik kısıtlar + ton profili

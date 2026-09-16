@@ -24,6 +24,7 @@ from datetime import timedelta
 import streamlit as st
 import streamlit.components.v1 as components
 
+import ekran_araclar
 import kalite
 import kvkk
 import prompts
@@ -74,7 +75,8 @@ ORNEKLER = [
 # ---------------------------------------------------------------------------
 # Oturum durumu
 # ---------------------------------------------------------------------------
-EKRANLAR = ("karsilama", "anlat", "sonuc", "pano", "iceriklerim", "ton", "yardim", "api")
+EKRANLAR = ("karsilama", "anlat", "sonuc", "pano", "iceriklerim", "ton", "yardim", "api",
+            "araclar", "gorsel", "satis")
 
 varsayilanlar = {
     "ekran": "karsilama", "yigin": [], "sonuc": None, "gecmis": [],
@@ -85,6 +87,9 @@ varsayilanlar = {
 }
 for a, d in varsayilanlar.items():
     st.session_state.setdefault(a, d)
+# Araç ekranlarının durumu; listeler kopyalanır ki oturumlar aynı nesneyi paylaşmasın.
+for a, d in ekran_araclar.VARSAYILANLAR.items():
+    st.session_state.setdefault(a, list(d) if isinstance(d, list) else d)
 # Geçmiş kayıtları kimlikle takvime ve ek formatlara bağlanır; eski oturumlarda eksik olabilir.
 for _k in st.session_state.gecmis:
     _k.setdefault("id", takvim.yeni_id())
@@ -379,6 +384,52 @@ a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-seri
 .ozet .deger {{ font-family:'Baloo 2'; font-weight:800; font-size:1.6rem; line-height:1.15; overflow-wrap:anywhere; }}
 .ozet .etiket {{ font-size:.88rem; color:var(--ink-2); font-weight:700; margin-top:.1rem; }}
 .gun-baslik {{ font-weight:800; font-size:1.15rem; color:var(--plum); margin:1.1rem 0 .35rem; }}
+/* Araç kartları, çipler, kalite kartı, fiyat çubuğu, özel gün kartları */
+.arac-karti {{ border:2.5px solid var(--ink); border-radius:20px; padding:.9rem 1rem; box-shadow:var(--golge);
+  margin-bottom:.55rem; min-height:9.4rem; transition:transform .2s ease; }}
+.arac-karti:hover {{ transform:translateY(-4px) rotate(-1deg); }}
+.arac-karti.mavi {{ background:var(--blue-soft); }}
+.arac-karti.sari {{ background:var(--yellow-soft); }}
+.arac-karti.pembe {{ background:var(--pink-soft); }}
+.arac-karti.yesil {{ background:var(--mint-soft); }}
+.arac-karti .ikon {{ font-size:1.8rem; line-height:1; }}
+.arac-karti .ad {{ font-family:'Baloo 2'; font-weight:800; font-size:1.2rem; margin:.35rem 0 .15rem; }}
+.arac-karti p {{ margin:0; font-size:.9rem; color:var(--ink-2); line-height:1.4; }}
+.cip {{ display:inline-block; font-family:'Nunito',sans-serif; font-weight:800; font-size:.8rem; padding:.08rem .6rem;
+  border-radius:999px; background:#fff; border:2px solid var(--line); color:var(--ink-2); margin:0 .3rem .3rem 0;
+  vertical-align:middle; }}
+.cipler {{ margin:.2rem 0 .3rem; }}
+.kalite-kart {{ display:flex; gap:1rem; align-items:flex-start; background:#fff; border:2.5px solid var(--ink);
+  border-radius:20px; padding:1rem; box-shadow:var(--golge); margin:.8rem 0 1rem; }}
+.kalite-kart .puan {{ flex:none; width:4.6rem; height:4.6rem; border-radius:50%; border:3px solid var(--ink);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'Baloo 2'; line-height:1; }}
+.kalite-kart .puan b {{ font-size:1.6rem; font-weight:800; }}
+.kalite-kart .puan small {{ font-size:.72rem; font-weight:700; }}
+.kalite-kart .puan.iyi {{ background:var(--mint-soft); }}
+.kalite-kart .puan.orta {{ background:var(--yellow-soft); }}
+.kalite-kart .puan.zayif {{ background:var(--pink-soft); }}
+.kalite-kart ul {{ margin:.2rem 0 0; padding-left:1.1rem; }}
+.kalite-kart li, .kalite-kart p {{ font-size:.95rem; margin:0 0 .2rem; }}
+.fiyat-cubugu {{ display:flex; height:2.3rem; border:2.5px solid var(--ink); border-radius:14px; overflow:hidden;
+  box-shadow:var(--golge-sm); margin:.3rem 0 .6rem; }}
+.fiyat-cubugu span + span {{ border-left:2px solid var(--ink); }}
+.fiyat-cubugu .mavi, .lejant i.mavi {{ background:#9ED8FF; }}
+.fiyat-cubugu .sari, .lejant i.sari {{ background:var(--yellow); }}
+.fiyat-cubugu .yesil, .lejant i.yesil {{ background:#7BE495; }}
+.fiyat-cubugu .pembe, .lejant i.pembe {{ background:var(--pink); }}
+.fiyat-cubugu .gri, .lejant i.gri {{ background:#CDBBDA; }}
+.lejant {{ list-style:none; padding:0; margin:0 0 1rem; display:flex; flex-wrap:wrap; gap:.3rem 1rem; }}
+.lejant li {{ font-size:.9rem; display:flex; align-items:center; gap:.35rem; margin:0; }}
+.lejant i {{ width:.95rem; height:.95rem; border-radius:4px; border:2px solid var(--ink); display:inline-block; }}
+.gun-kartlari {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr)); gap:.6rem; margin:.3rem 0 .8rem; }}
+.gun-karti {{ display:flex; gap:.6rem; align-items:center; background:#fff; border:2.5px solid var(--ink);
+  border-radius:16px; padding:.55rem .7rem; box-shadow:var(--golge-sm); }}
+.gun-karti.yakin {{ background:var(--yellow-soft); }}
+.gun-karti .tarih {{ flex:none; width:3rem; text-align:center; border-right:2px dashed var(--line); padding-right:.5rem;
+  font-size:.78rem; font-weight:800; color:var(--plum); line-height:1.1; }}
+.gun-karti .tarih b {{ display:block; font-family:'Baloo 2'; font-size:1.45rem; color:var(--ink); }}
+.gun-karti .ad {{ font-weight:800; font-size:.92rem; line-height:1.2; }}
+.gun-karti .kalan {{ font-size:.78rem; color:var(--muted); font-weight:700; }}
 /* Geniş Markdown tabloları (API belgesi) dar ekranda sayfayı değil yalnız kendini kaydırsın */
 [data-testid="stMarkdownContainer"] table {{ display:block; max-width:100%; overflow-x:auto; }}
 
@@ -391,6 +442,11 @@ a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-seri
   *,*::before,*::after {{ animation:none !important; transition:none !important; }}
   .konfeti {{ display:none !important; }}
 }}
+/* Çok dar telefonlarda üst menü 2×2 dizilir; dört düğme tek satırda yazıları kesiyordu */
+@media (max-width:430px) {{
+  .st-key-ust_menu [data-testid="stHorizontalBlock"] {{ flex-wrap:wrap !important; row-gap:.55rem !important; }}
+  .st-key-ust_menu [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{ flex:1 1 calc(50% - .5rem) !important; }}
+}}
 @media (max-width:640px) {{
   .adimlar {{ grid-template-columns:1fr; }}
   .karsilama h1 {{ font-size:1.95rem; }}
@@ -401,6 +457,11 @@ a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-seri
   .ozet .etiket {{ font-size:.78rem; }}
   .ilerleme .adim-cip {{ font-size:.82rem; padding-right:.6rem; }}
   .ilerleme .cizgi {{ width:.7rem; }}
+  .arac-karti {{ min-height:10.5rem; padding:.7rem .75rem; }}
+  .arac-karti .ad {{ font-size:1.02rem; }}
+  .arac-karti p {{ font-size:.8rem; }}
+  .kalite-kart {{ gap:.7rem; padding:.8rem; }}
+  .kalite-kart .puan {{ width:3.8rem; height:3.8rem; }}
   .block-container {{ padding-left:.9rem; padding-right:.9rem; }}
   /* Yan yana düğmeler (gezinme, eylemler) mobilde alt alta yığılmasın */
   [data-testid="stHorizontalBlock"] {{ flex-wrap:nowrap !important; gap:.45rem !important; }}
@@ -425,13 +486,13 @@ def ust_bar() -> None:
         '<div><div class="ad">Üretken Kadın</div>'
         '<div class="alt">Emeğin dijital sesi</div></div></div>',
         unsafe_allow_html=True)
-    k = st.columns([1, 1, 1.15, 0.95])
+    k = st.container(key="ust_menu").columns([1, 1, 1.15, 0.95])
     if k[0].button("← Geri", use_container_width=True, key="nav_geri",
                    help="Bir önceki ekrana dön"):
         geri()
-    if k[1].button("✨ Yeni", use_container_width=True, key="nav_yeni",
-                   help="Yeni bir ürün anlatın"):
-        git("anlat")
+    if k[1].button("🧰 Araçlar", use_container_width=True, key="nav_araclar",
+                   help="İçerik yaz, görsel stüdyosu, satış araçları"):
+        git("araclar")
     if k[2].button("🏠 Panom", use_container_width=True, key="nav_gec",
                    help="İçerikleriniz ve paylaşım takviminiz"):
         git("pano")
@@ -528,6 +589,10 @@ def ekran_karsilama() -> None:
         <p>Okur, beğendiğiniz gibi düzeltir ve paylaşırsınız. Söz hep sizde.</p></div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown('<div class="ekran-baslik" style="font-size:1.6rem;margin-top:.4rem">'
+                'Neler yapabilirsiniz?</div>', unsafe_allow_html=True)
+    ekran_araclar.arac_kartlari(_baglam(), "giris")
 
     st.markdown('<div class="guven">🤍 Yapay zekâ yalnızca yardımcı olur; '
                 'hikâyenizi <b>uydurmaz</b>, abartı yapmaz. Son kararı her zaman '
@@ -770,6 +835,18 @@ def ekran_sonuc() -> None:
     with b2:
         if st.button("＋  Yeni ürün anlat", use_container_width=True, type="primary"):
             git("anlat")
+
+    # Aynı ürün için araçlara doğrudan geçiş (ürün ve sekme hazır seçili gelir)
+    st.markdown('<div class="kart-baslik" style="margin-top:1.2rem">🧰 Bu ürün için</div>',
+                unsafe_allow_html=True)
+    hedefler = (("📸 Görsel", "gorsel", "gs_sekme", ekran_araclar.GS_SEKMELER[0]),
+                ("🛒 İlan", "satis", "satis_sekme", ekran_araclar.SATIS_SEKMELER[2]),
+                ("💰 Fiyat", "satis", "satis_sekme", ekran_araclar.SATIS_SEKMELER[0]))
+    for i, (kol, (etiket, hedef, sekme_anahtari, sekme)) in enumerate(zip(st.columns(3), hedefler)):
+        if kol.button(etiket, key=f"bu_urun_{i}", use_container_width=True):
+            st.session_state.secili_kayit_id = kayit["id"]
+            ekran_araclar.sekme_sec(sekme_anahtari, sekme)
+            git(hedef)
 
     paylasim_zamani(kayit)
 
@@ -1282,6 +1359,12 @@ def ekran_gelistirici() -> None:
             st.info("Model eğitilmemiş: `python src/kalite_egit.py`")
 
 
+def _baglam() -> ekran_araclar.Baglam:
+    """Araç ekranlarına (ekran_araclar.py) app.py'nin ortak parçalarını verir."""
+    return ekran_araclar.Baglam(ust_bar=ust_bar, git=git, kayit_bul=kayit_bul,
+                                kategoriler=KATEGORILER, ozenli=ozenli)
+
+
 # ---------------------------------------------------------------------------
 # YÖNLENDİRİCİ (router)
 # ---------------------------------------------------------------------------
@@ -1303,5 +1386,11 @@ else:
         ekran_yardim()
     elif ekran == "api":
         ekran_api()
+    elif ekran == "araclar":
+        ekran_araclar.arac_kutusu(_baglam())
+    elif ekran == "gorsel":
+        ekran_araclar.gorsel_studyosu(_baglam())
+    elif ekran == "satis":
+        ekran_araclar.satis_araclari(_baglam())
     else:
         ekran_karsilama()

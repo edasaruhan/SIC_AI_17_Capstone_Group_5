@@ -3,6 +3,9 @@ streamlit>=1.41
 python-dotenv>=1.0
 pandas>=2.0
 pytrends>=4.9
+# Görsel stüdyosu: paylaşım görseli, katalog PDF, hızlı fotoğraf düzeltme
+Pillow>=10.1
+numpy>=1.24
 
 # İçerik kalite sınıflandırıcısı (kalite_egit.py / kalite.py)
 scikit-learn>=1.3

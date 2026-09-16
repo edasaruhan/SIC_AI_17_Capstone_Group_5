@@ -451,3 +451,155 @@ KATEGORI_KELIMELERI = {
     "Takı / Aksesuar":     ["el yapımı takı", "özel tasarım", "hediye"],
     "Tasarım / Dekorasyon": ["el yapımı dekor", "ev dekorasyonu", "özel tasarım"],
 }
+
+
+# ---------------------------------------------------------------------------
+# 8) GÖRSEL STÜDYOSU — fotoğraftan anlatım ve arka plan değiştirme
+# ---------------------------------------------------------------------------
+def foto_anlatim(kategori: str) -> str:
+    return f"""{SISTEM_TALIMATI}
+
+Bu kez görevin farklı: sana üreticinin ürün FOTOĞRAFI verildi. Fotoğrafa bakarak ürünü
+tanımlayacak ve üreticinin anlatımını zenginleştirmesine yardım edeceksin.
+
+Kurallar:
+- Yalnızca fotoğrafta GÖRDÜĞÜN şeyleri yaz: ürün türü, renkler, desen, doku, biçim, görünen ayrıntılar.
+- Malzeme, içerik, ağırlık, ölçü, üretim süresi ya da teknik fotoğraftan kesin anlaşılamaz;
+  bunları UYDURMA, "sorular" listesinde üreticiye sor.
+- "anlatim_taslagi": üreticinin ağzından, birinci tekil kişiyle 2-3 kısa cümle; yalnızca görünen
+  özellikleri kullan. Bilinmeyen yerleri köşeli parantezle bırak: [malzeme], [kaç günde yaptığınız].
+- Fotoğrafta ürün seçilemiyorsa "urun" alanına "belirsiz" yaz.
+- Fotoğrafta insan yüzü ya da kişisel bilgi varsa bunları tarif etme.
+
+ÜRÜN KATEGORİSİ (üreticinin seçtiği): {kategori}
+
+Yalnızca şu JSON'u ver:
+{{"urun": "", "gorunen_ozellikler": [], "renkler": [], "anlatim_taslagi": "", "sorular": []}}"""
+
+
+ARKA_PLAN_SAHNELERI = {
+    "⬜ Beyaz stüdyo": "düz, temiz beyaz bir stüdyo zemini ve ürünün altında yumuşak, doğal bir gölge",
+    "🪵 Açık ahşap masa": "açık renk, sade bir ahşap masa yüzeyi ve yumuşak gün ışığı",
+    "🪟 Pencere ışığı": "pencere kenarından gelen yumuşak doğal ışık ve sade, bulanık bir ev ortamı",
+    "🌸 Pastel zemin": "düz, açık pastel pembe bir zemin ve eşit stüdyo ışığı",
+    "🧺 Keten kumaş": "doğal, açık renk keten kumaştan sade bir zemin",
+}
+
+
+def arka_plan_talimati(sahne: str) -> str:
+    if sahne not in ARKA_PLAN_SAHNELERI:
+        raise ValueError(f"Bilinmeyen sahne: {sahne}")
+    return ("Bu, el emeğiyle üretilmiş bir ürünün fotoğrafı. ÜRÜNÜN KENDİSİNİ HİÇ DEĞİŞTİRME: "
+            "şekli, rengi, deseni, dokusu, boyutu, sayısı ve üzerindeki yazılar aynen kalsın. "
+            "Yeni nesne, süs, etiket ya da yazı ekleme; ürünü kırpma, güzelleştirme ya da onarma. "
+            f"Yalnızca arka planı şöyle değiştir: {ARKA_PLAN_SAHNELERI[sahne]}. "
+            "Işığı ürünün gerçek rengini bozmadan dengele. Sonuç gerçekçi, sade bir ürün fotoğrafı olsun.")
+
+
+# ---------------------------------------------------------------------------
+# 9) SATIŞ ARAÇLARI — müşteriye cevap, pazaryeri ilanı, çeviri, kampanya
+# ---------------------------------------------------------------------------
+def musteri_cevabi(mesaj: str, urun_bilgisi: str, ton: str) -> str:
+    return f"""{SISTEM_TALIMATI}
+
+Bu kez görevin farklı: bir müşterinin üreticiye yazdığı mesaja, üretici adına kısa bir cevap
+TASLAĞI hazırlayacaksın. Üretici okuyup düzenleyecek, sonra gönderecek.
+
+Kurallar:
+- Nazik, {ton} ve kısa yaz (en fazla 5 cümle); WhatsApp ya da Instagram mesajı gibi.
+- Fiyat, kargo süresi, stok, indirim, iade koşulu gibi bilgiler ÜRÜN BİLGİSİNDE yoksa UYDURMA;
+  yerine köşeli parantezle yer tutucu yaz: [fiyat], [kargo süresi], [stok durumu] gibi.
+- Baskı kuran satış dili kullanma ("son şans", "hemen alın" gibi).
+- Müşteri şikâyet ediyorsa önce anlayışla karşıla ve çözüm için bilgi iste; para iadesi ya da
+  tazminat sözü verme.
+- Müşterinin kişisel bilgilerini (ad, adres, telefon) cevaba yazma.
+
+ÜRÜN BİLGİSİ (üreticinin kendi anlatımı):
+\"\"\"{urun_bilgisi or "Verilmedi."}\"\"\"
+
+MÜŞTERİNİN MESAJI:
+\"\"\"{mesaj}\"\"\"
+
+Yalnızca şu JSON'u ver:
+{{"cevap": ""}}"""
+
+
+def pazaryeri_ilani(anlatim: str, kategori: str, platform: str, dil: str,
+                    anahtar_kelimeler: list[str] | None = None) -> str:
+    if dil == "en":
+        kural = ("Bu görevde 6. kural (Türkçe yazma) geçerli değil: ilanı İNGİLİZCE yaz (Etsy). "
+                 "Başlık en fazla 140 karakter olsun ve alıcının arama kutusuna yazacağı kelimelerle "
+                 "başlasın. En fazla 13 etiket ver; her etiket en fazla 20 karakterlik İngilizce "
+                 "arama ifadesi olsun. Özellikler ve açıklama da İngilizce olsun.")
+    else:
+        kural = ("İlanı TÜRKÇE yaz. Başlık en fazla 100 karakter olsun: ürün türü + öne çıkan özellik "
+                 "+ (anlatımda varsa) malzeme. En fazla 15 etiket ver; alıcının arama kutusuna "
+                 "yazacağı Türkçe ifadeler olsun.")
+    kelimeler = ""
+    if anahtar_kelimeler:
+        kelimeler = ("\nARAMA VERİSİNDEN GELEN ANAHTAR KELİMELER: " + ", ".join(anahtar_kelimeler) +
+                     "\nBunlardan ürüne GERÇEKTEN uyanları başlıkta ya da açıklamada doğal biçimde kullan.\n")
+    return f"""{SISTEM_TALIMATI}
+
+Bu kez görevin farklı: üreticinin anlatımından {platform} için ÜRÜN İLANI hazırlayacaksın.
+
+Kurallar:
+- {kural}
+- "ozellikler": madde madde, "Özellik: değer" biçiminde (ör. "Malzeme: organik pamuk ipliği").
+  Yalnızca anlatımda geçen bilgileri yaz.
+- Ölçü, ağırlık, yıkama/saklama talimatı, renk seçenekleri gibi ilanda olması gereken ama anlatımda
+  OLMAYAN bilgileri "eksik_bilgiler" listesine Türkçe yaz; bunları UYDURMA.
+- "aciklama": 2-4 kısa paragraf; bilgi verici ve sakin; emeği ve üretim sürecini anlat.
+{kelimeler}
+ÜRÜN KATEGORİSİ: {kategori}
+ÜRETİCİNİN KENDİ ANLATIMI:
+\"\"\"{anlatim}\"\"\"
+
+Yalnızca şu JSON'u ver:
+{{"baslik": "", "ozellikler": [], "aciklama": "", "etiketler": [], "eksik_bilgiler": []}}"""
+
+
+def ceviri(metin: str, hedef_dil: str = "İngilizce") -> str:
+    return f"""Aşağıdaki Türkçe ürün metnini {hedef_dil}ye çevir.
+- Anlamı koru; bilgi ekleme ya da çıkarma, abartı katma.
+- El emeği ürün satışına uygun, doğal ve sade bir dil kullan.
+- Hashtag'leri ve köşeli parantezli yer tutucuları ([fiyat] gibi) anlamına uygun biçimde çevir.
+- Yalnızca çeviriyi yaz; açıklama ekleme.
+
+METİN:
+\"\"\"{metin}\"\"\""""
+
+
+def kampanya_onerisi(gun_adi: str, tarih_metni: str, kalan_gun: int, anlatim: str,
+                     kategori: str) -> str:
+    return f"""{SISTEM_TALIMATI}
+
+Bu kez görevin farklı: üretici için "{gun_adi}" ({tarih_metni}, {kalan_gun} gün kaldı) özel
+gününe yönelik küçük bir kampanya planı hazırlayacaksın.
+
+Kurallar:
+- Sahte aciliyet ya da uydurma indirim yazma ("son 2 ürün", "%50 indirim" gibi). İndirim
+  önerirsen oranı [indirim oranı] diye yer tutucu bırak.
+- Ürün bu güne gerçekten uymuyorsa bunu dürüstçe söyle ve uygun bir açı öner (hediye paketi
+  gibi) ya da bu günü atlamayı öner.
+- Yalnızca anlatımdaki bilgileri kullan.
+
+ÜRÜN KATEGORİSİ: {kategori}
+ÜRETİCİNİN KENDİ ANLATIMI:
+\"\"\"{anlatim}\"\"\"
+
+Çıktıyı tam olarak şu Markdown biçiminde ver, başka açıklama ekleme:
+
+**🎯 Kampanya fikri**
+(1-2 cümle)
+
+**📅 Paylaşım planı**
+1. **10 gün önce:** …
+2. **3 gün önce:** …
+3. **Özel gün:** …
+
+**📱 Örnek gönderi metni**
+(Özel güne uygun, en fazla 3 cümle ve en fazla 5 hashtag)
+
+**🎁 Küçük dokunuş**
+(Paketleme ya da not kartı gibi, maliyeti düşük tek öneri)"""
