@@ -133,7 +133,7 @@ def test_ics_ozel_karakterler_kacislanir_ve_uzun_satirlar_katlanir():
 
 # ---------------------------------------------------------------- kaydet / yükle
 def test_disa_ve_ice_aktarma_kayipsiz():
-    icerikler = [{**_icerik(1), "ekler": {"hashtag": "#a #b"}}]
+    icerikler = [{**_icerik(1), "ekler": {"hashtag": "#a #b"}, "fiyat": 350.0}]
     plan = [PlanOgesi(zaman=AN.isoformat(), kanal="whatsapp", baslik="b", metin="m",
                       icerik_id="ic1", tamam=True, id="p1")]
     dosya = takvim.disa_aktar(icerikler, plan, ["benim üslubum"], an=AN)

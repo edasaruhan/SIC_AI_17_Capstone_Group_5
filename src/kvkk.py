@@ -48,29 +48,46 @@ FOTO_AYDINLATMA = ("Yalnızca ürün fotoğrafı yükleyin; insan yüzü, adres 
                    "saklanmaz; sayfayı kapatınca silinir.")
 
 # Pano → Kaydet / yükle bölümünde gösterilir
-KAYIT_ACIKLAMA = ("Planınız sunucumuzda saklanmaz. Kaydettiğiniz dosya yalnızca sizin "
-                  "cihazınıza iner; bir dahaki sefere buradan yükleyip kaldığınız yerden "
-                  "devam edersiniz. Dosyada anlatımlarınız ve içerikleriniz bulunur — "
-                  "başkalarıyla paylaşmayın.")
+KAYIT_ACIKLAMA = ("Planınız hesabınızda otomatik olarak saklanır. İsterseniz buradan bir kopyasını "
+                  "cihazınıza indirebilir ya da daha önce indirdiğiniz bir dosyayı yükleyebilirsiniz. "
+                  "Dosyada anlatımlarınız ve içerikleriniz bulunur — başkalarıyla paylaşmayın.")
+
+# Kayıt formunda gösterilir; kayıt için açık rıza kutusu işaretlenmelidir
+HESAP_AYDINLATMA = """**Hesabınız ve verileriniz (KVKK)**
+
+- **Ne saklıyoruz?** E-posta adresiniz, adınız ve şifrenizin geri çevrilemez özeti (şifrenizin
+  kendisini biz de göremeyiz); hazırladığınız içerikler, paylaşım takviminiz, ton profiliniz ve
+  kaydettiğiniz fiyatlar. **Fotoğraflarınız ve ses kayıtlarınız saklanmaz.**
+- **Ne amaçla?** Hesabınıza her girdiğinizde içeriklerinize kaldığınız yerden devam edebilmeniz için.
+  Başka amaçla kullanılmaz, kimseyle paylaşılmaz, reklam için kullanılmaz.
+- **Nerede?** Yurt dışındaki bir bulut veritabanı hizmetinde (Neon) saklanır; bu, KVKK m.9
+  kapsamında yurt dışına aktarımdır. İçerik üretimi için anlatımınız ayrıca Google Gemini'ye gönderilir.
+- **Ne kadar süre?** Siz hesabınızı silene kadar.
+- **Haklarınız (KVKK m.11):** Hesabım sayfasından verilerinizi indirebilir, şifrenizi değiştirebilir
+  ve hesabınızı tüm verileriyle birlikte kalıcı olarak silebilirsiniz."""
+
+HESAP_RIZA_ETIKETI = ("Aydınlatma metnini okudum; hesap bilgilerimin ve hazırladığım içeriklerin bu "
+                      "amaçla yurt dışındaki bir veritabanında saklanmasına **açık rıza** veriyorum.")
 
 # Ayrıntılı politika (Etik/KVKK sekmesinde gösterilir)
 POLITIKA_MADDELERI = [
     ("Hangi veriyi işliyoruz?",
-     "Yalnızca ürününüzü anlattığınız ses veya metni. Reklam kimliği, konum ya da "
-     "iletişim bilgisi toplamayız."),
+     "Hesabınız için e-posta adresinizi, adınızı ve şifrenizin geri çevrilemez özetini; ayrıca "
+     "ürününüzü anlattığınız ses veya metni. Reklam kimliği ya da konum toplamayız."),
     ("Ne amaçla?",
      "Yalnızca pazarlama içeriği (Instagram/Shopier metni, Reels planı, foto "
-     "rehberi) üretmek için. Başka amaçla kullanılmaz."),
+     "rehberi) üretmek ve hesabınızda saklamak için. Başka amaçla kullanılmaz."),
     ("Nereye aktarılıyor?",
-     "İçerik üretimi Google Gemini API üzerinden yapılır; bu, KVKK m.9 kapsamında "
-     "yurt dışına veri aktarımı anlamına gelir. Bu yüzden ses için açık rıza alırız."),
+     "İçerik üretimi Google Gemini API üzerinden yapılır; hesap bilgileriniz ve içerikleriniz "
+     "yurt dışındaki bir veritabanı hizmetinde (Neon) saklanır. İkisi de KVKK m.9 kapsamında "
+     "yurt dışına aktarımdır; bu yüzden ses için ve kayıt olurken açık rıza alırız."),
     ("Ne kadar saklıyoruz?",
-     "Anlatımınız, üretilen içerik ve paylaşım takviminiz yalnızca oturum boyunca "
-     "bellekte tutulur; sayfayı kapatınca silinir. Sunucumuzda kalıcı kayıt tutulmaz. "
-     "Planınızı saklamak isterseniz \"Kaydet\" dosyası yalnızca sizin cihazınıza iner."),
+     "Hesabınızdaki içerikler, paylaşım takviminiz, ton profiliniz ve kaydettiğiniz fiyatlar siz "
+     "hesabınızı silene kadar saklanır. Fotoğraf ve ses kayıtları saklanmaz; işlendikten sonra "
+     "sayfayı kapatınca silinir."),
     ("Haklarınız",
-     "KVKK m.11 kapsamında verinize erişme, düzeltme ve silinmesini isteme "
-     "haklarınız vardır. Sesli anlatımı hiç kullanmama seçeneğiniz her zaman açıktır."),
+     "KVKK m.11 kapsamında verinize erişme, düzeltme ve silinmesini isteme haklarınız vardır. "
+     "Hesabım sayfasından verilerinizi indirebilir ve hesabınızı kalıcı olarak silebilirsiniz."),
     ("Veri minimizasyonu",
      "Sistemi, işini görecek en az veriyle çalışacak biçimde tasarladık; hassas "
      "bilgi istemez ve toplamayız."),

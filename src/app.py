@@ -25,6 +25,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import ekran_araclar
+import ekran_hesap
 import kalite
 import kvkk
 import prompts
@@ -47,6 +48,14 @@ except Exception:
     pass
 # uret.py model adlarını import anında okur; secrets sonradan geldiği için tazele.
 uret.modelleri_yenile()
+
+# Çıkış ya da hesap silme istendiyse oturum, hiçbir bileşen çizilmeden temizlenir.
+if st.session_state.get("_oturumu_kapat"):
+    _veda = st.session_state["_oturumu_kapat"]
+    for _a in list(st.session_state.keys()):
+        del st.session_state[_a]
+    st.query_params["ekran"] = "karsilama"
+    st.toast(_veda, icon="👋")
 
 ANA = "#9B3D63"; KOYU = "#4A2138"; SAGE = "#6E8F77"
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -76,7 +85,7 @@ ORNEKLER = [
 # Oturum durumu
 # ---------------------------------------------------------------------------
 EKRANLAR = ("karsilama", "anlat", "sonuc", "pano", "iceriklerim", "ton", "yardim", "api",
-            "araclar", "gorsel", "satis")
+            "araclar", "gorsel", "satis", "giris", "hesap")
 
 varsayilanlar = {
     "ekran": "karsilama", "yigin": [], "sonuc": None, "gecmis": [],
@@ -88,7 +97,7 @@ varsayilanlar = {
 for a, d in varsayilanlar.items():
     st.session_state.setdefault(a, d)
 # Araç ekranlarının durumu; listeler kopyalanır ki oturumlar aynı nesneyi paylaşmasın.
-for a, d in ekran_araclar.VARSAYILANLAR.items():
+for a, d in (*ekran_araclar.VARSAYILANLAR.items(), *ekran_hesap.VARSAYILANLAR.items()):
     st.session_state.setdefault(a, list(d) if isinstance(d, list) else d)
 # Geçmiş kayıtları kimlikle takvime ve ek formatlara bağlanır; eski oturumlarda eksik olabilir.
 for _k in st.session_state.gecmis:
@@ -153,6 +162,13 @@ def ayar_dugmesi(anahtar: str, etiket: str, yardim: str) -> None:
 
 
 with st.sidebar:
+    if st.session_state.kullanici:
+        st.markdown(f'<div class="kenar-hesap">👤 {html.escape(st.session_state.kullanici["ad"])}</div>',
+                    unsafe_allow_html=True)
+        if st.button("👤 Hesabım", use_container_width=True, key="kenar_hesabim"):
+            git("hesap")
+    elif st.button("🔑 Giriş yap / Kayıt ol", use_container_width=True, key="kenar_giris", type="primary"):
+        git("giris")
     st.markdown('<div class="kenar-baslik">⚙️ Ayarlar</div>', unsafe_allow_html=True)
     ayar_dugmesi("buyuk_yazi", "🔠 Büyük yazı",
                  "Tüm yazıları büyütür — okuması zor gelenler için.")
@@ -431,6 +447,17 @@ a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-seri
 .gun-karti .tarih b {{ display:block; font-family:'Baloo 2'; font-size:1.45rem; color:var(--ink); }}
 .gun-karti .ad {{ font-weight:800; font-size:.92rem; line-height:1.2; }}
 .gun-karti .kalan {{ font-size:.78rem; color:var(--muted); font-weight:700; }}
+/* Hesap */
+.hesap-cip {{ margin-left:auto; font-weight:800; font-size:.9rem; background:#fff; border:2.5px solid var(--ink);
+  border-radius:999px; padding:.25rem .8rem; box-shadow:var(--golge-sm); white-space:nowrap; max-width:45%;
+  overflow:hidden; text-overflow:ellipsis; }}
+[data-testid="stSidebar"] .kenar-hesap {{ font-weight:800; font-size:1.05rem; margin:.1rem 0 .5rem; }}
+.hesap-karti {{ background:#fff; border:2.5px solid var(--ink); border-radius:20px; padding:.6rem 1.2rem;
+  box-shadow:var(--golge); margin:.4rem 0 1rem; }}
+.hesap-karti .satir {{ display:flex; justify-content:space-between; gap:1rem; padding:.45rem 0;
+  border-bottom:2px dashed var(--line); overflow-wrap:anywhere; }}
+.hesap-karti .satir:last-child {{ border-bottom:0; }}
+.hesap-karti .etiket {{ color:var(--muted); font-weight:700; }}
 /* Geniş Markdown tabloları (API belgesi) dar ekranda sayfayı değil yalnız kendini kaydırsın */
 [data-testid="stMarkdownContainer"] table {{ display:block; max-width:100%; overflow-x:auto; }}
 
@@ -482,10 +509,13 @@ a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-seri
 # ---------------------------------------------------------------------------
 def ust_bar() -> None:
     """Sade üst bar: logo + geri düğmesi + gezinme."""
+    kullanici = st.session_state.get("kullanici")
+    hesap_cipi = (f'<div class="hesap-cip" title="{html.escape(kullanici["eposta"])}">👤 '
+                  f'{html.escape(kullanici["ad"].split()[0])}</div>' if kullanici else "")
     st.markdown(
         '<div class="ustbar"><div class="logo">🧵</div>'
         '<div><div class="ad">Üretken Kadın</div>'
-        '<div class="alt">Emeğin dijital sesi</div></div></div>',
+        '<div class="alt">Emeğin dijital sesi</div></div>' + hesap_cipi + '</div>',
         unsafe_allow_html=True)
     k = st.container(key="ust_menu").columns([1, 1, 1.15, 0.95])
     if k[0].button("← Geri", use_container_width=True, key="nav_geri",
@@ -603,9 +633,11 @@ def ekran_karsilama() -> None:
         git("anlat")
     if st.button("Nasıl çalıştığını anlat", use_container_width=True):
         git("yardim")
-    if st.button("📂 Kayıtlı planımla devam et", use_container_width=True,
-                 help="Daha önce kaydettiğiniz içerik ve takvim dosyasını yükleyin"):
-        git("pano")
+    if st.session_state.kullanici:
+        if st.button("🏠 Panoma git", use_container_width=True, key="karsilama_pano"):
+            git("pano")
+    elif st.button("🔑 Giriş yap / Kayıt ol", use_container_width=True, key="karsilama_giris"):
+        git("giris")
 
 
 # ===========================================================================
@@ -1062,8 +1094,8 @@ def ekran_pano() -> None:
         _plan_yukle()
         return
 
-    st.markdown('<div class="ekran-alt">İçerikleriniz ve paylaşım takviminiz tek yerde. '
-                'Sayfayı kapatınca sıfırlanır — saklamak için “Kaydet / yükle”.</div>',
+    st.markdown('<div class="ekran-alt">İçerikleriniz ve paylaşım takviminiz tek yerde; '
+                'hesabınızda otomatik olarak saklanır.</div>',
                 unsafe_allow_html=True)
     sira = takvim.siradaki(plan, an)
     paylasilan = sum(o.tamam for o in plan)
@@ -1141,8 +1173,9 @@ def ekran_yardim() -> None:
         ("🚫 Abartı yok", "“Mucize”, “garanti”, “en iyi” gibi ispatsız sözler "
          "yazılmaz; gıdada sağlık iddiası kurulmaz."),
         ("✋ Son karar sizde", "Onayınız olmadan hiçbir içerik kullanılmaz."),
-        ("🔒 Verileriniz güvende", "Anlatımınız yalnızca içerik hazırlamak için "
-         "kullanılır, kalıcı olarak saklanmaz (KVKK)."),
+        ("🔒 Verileriniz güvende", "Anlatımınız yalnızca içerik hazırlamak ve hesabınızda "
+         "saklamak için kullanılır; fotoğraflar saklanmaz. Hesabınızı istediğiniz an tüm "
+         "verileriyle silebilirsiniz (KVKK)."),
     ]:
         st.markdown(f'<div class="kart"><div class="kart-baslik">{baslik}</div>'
                     f'<p>{aciklama}</p></div>', unsafe_allow_html=True)
@@ -1360,6 +1393,10 @@ def ekran_gelistirici() -> None:
             st.info("Model eğitilmemiş: `python src/kalite_egit.py`")
 
 
+def _baglam_hesap() -> ekran_hesap.Baglam:
+    return ekran_hesap.Baglam(ust_bar=ust_bar, git=git)
+
+
 def _baglam() -> ekran_araclar.Baglam:
     """Araç ekranlarına (ekran_araclar.py) app.py'nin ortak parçalarını verir."""
     return ekran_araclar.Baglam(ust_bar=ust_bar, git=git, kayit_bul=kayit_bul,
@@ -1369,10 +1406,15 @@ def _baglam() -> ekran_araclar.Baglam:
 # ---------------------------------------------------------------------------
 # YÖNLENDİRİCİ (router)
 # ---------------------------------------------------------------------------
-if gelistirici:
+ekran = st.session_state.ekran
+if not st.session_state.kullanici and (gelistirici or ekran not in ekran_hesap.KORUMASIZ_EKRANLAR):
+    # Araçlar girişten sonra; giriş yapınca istenen ekrana dönülür.
+    if ekran not in ekran_hesap.KORUMASIZ_EKRANLAR:
+        st.session_state.giris_sonrasi = ekran
+    ekran_hesap.giris_ekrani(_baglam_hesap())
+elif gelistirici:
     ekran_gelistirici()
 else:
-    ekran = st.session_state.ekran
     if ekran == "karsilama":
         ekran_karsilama()
     elif ekran == "anlat":
@@ -1393,5 +1435,12 @@ else:
         ekran_araclar.gorsel_studyosu(_baglam())
     elif ekran == "satis":
         ekran_araclar.satis_araclari(_baglam())
+    elif ekran == "giris":                      # zaten giriş yapılmışsa araç kutusuna
+        git("araclar")
+    elif ekran == "hesap":
+        ekran_hesap.hesabim_ekrani(_baglam_hesap())
     else:
         ekran_karsilama()
+
+# Giriş yapmış kullanıcının içerikleri değiştiyse hesabına kaydedilir (yalnızca değişiklik varsa).
+ekran_hesap.kaydet_gerekirse()

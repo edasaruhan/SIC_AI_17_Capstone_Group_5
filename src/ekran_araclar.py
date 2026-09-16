@@ -80,7 +80,7 @@ def sekme_sec(anahtar: str, sekme: str) -> None:
     st.session_state.pop(f"{anahtar}_secim", None)        # seçim kutusu yeni varsayılanla açılsın
 
 
-def _sekme(anahtar: str, sekmeler: list[str]) -> str:
+def sekme_kutusu(anahtar: str, sekmeler: list[str]) -> str:
     """
     Sekme seçimi. Seçili sekme `anahtar` altında (widget olmayan durum) tutulur; seçim kutusu ona
     `default` ile bağlanır. Değeri widget anahtarına önceden yazmak Streamlit'te seçili görünümü
@@ -189,7 +189,7 @@ def gorsel_studyosu(b: Baglam) -> None:
     _baslik("Görsel stüdyosu", "📸",
             "Telefonla çektiğiniz fotoğrafı güzelleştirin, fotoğraftan anlatım çıkarın, paylaşıma "
             "hazır görsel ve katalog hazırlayın.")
-    sekme = _sekme("gs_sekme", GS_SEKMELER)
+    sekme = sekme_kutusu("gs_sekme", GS_SEKMELER)
     if sekme == "📒 Katalog":
         _katalog(b)
         return
@@ -391,7 +391,7 @@ def satis_araclari(b: Baglam) -> None:
     b.ust_bar()
     _baslik("Satış araçları", "💰", "Fiyatınızı hesaplayın, müşterilere cevap verin, pazaryeri ilanı "
                                    "ve özel gün kampanyası hazırlayın.")
-    sekme = _sekme("satis_sekme", SATIS_SEKMELER)
+    sekme = sekme_kutusu("satis_sekme", SATIS_SEKMELER)
     if sekme == "💰 Fiyat hesapla":
         _fiyat(b)
     elif sekme == "💬 Müşteriye cevap":

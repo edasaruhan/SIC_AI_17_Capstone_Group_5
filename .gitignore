@@ -22,6 +22,9 @@ models/
 
 # Calisma-aninda uretilen Google Trends onbellegi
 data/trends_onbellek.json
+# Yerel hesap veritabani (kullanici e-postalari ve icerikleri) - ASLA repoya girmemeli
+data/yerel.db
+*.db
 
 # Streamlit secret'lari ASLA repoya girmemeli (config.toml girer, secrets.toml girmez)
 .streamlit/secrets.toml

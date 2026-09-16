@@ -8,6 +8,7 @@ Gemini'ye istek atılmaz.
 import contextlib
 import os
 import sys
+import tempfile
 from datetime import date
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,6 +19,7 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 
 import ekran_araclar  # noqa: E402
 import gorsel  # noqa: E402
+import hesap  # noqa: E402
 import satis  # noqa: E402
 import uret  # noqa: E402
 
@@ -41,9 +43,17 @@ def kayit(no: int) -> dict:
             "instagram": f"IG {no}", "shopier": f"Keçe patik {no}. Yün keçeden elde dikilir.", "ekler": {}}
 
 
+os.environ.pop("DATABASE_URL", None)                       # testler Neon'a asla yazmasın
+os.environ["HESAP_DB_YOLU"] = os.path.join(tempfile.mkdtemp(prefix="uk_arayuz_test_"), "test.db")
+_KULLANICI = hesap.kayit_ol("test@ornek.com", "Test", "Yumak2026!", "Yumak2026!", True)
+OTURUM = {"id": _KULLANICI.id, "eposta": _KULLANICI.eposta, "ad": _KULLANICI.ad,
+          "olusturma": _KULLANICI.olusturma.isoformat()}
+
+
 def uygulama(ekran: str, **durum) -> AppTest:
     at = AppTest.from_file(APP, default_timeout=90)
     at.query_params["ekran"] = ekran
+    durum.setdefault("kullanici", OTURUM)                      # araçlar girişten sonra açılır
     for anahtar, deger in durum.items():
         at.session_state[anahtar] = deger
     at.run()

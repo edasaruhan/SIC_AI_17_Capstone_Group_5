@@ -19,6 +19,7 @@ Streamlit'e bağımlı değildir; testlerde doğrudan kullanılır (tests/test_t
 from __future__ import annotations
 
 import json
+import math
 import re
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -284,11 +285,19 @@ def disa_aktar(icerikler: list[dict], plan: list[PlanOgesi],
         "surum": SURUM,
         "kaydedilme": (an or simdi()).isoformat(timespec="seconds"),
         "icerikler": [{**{a: k.get(a, "") for a in ICERIK_ALANLARI},
+                       "fiyat": _fiyat(k.get("fiyat")),
                        "ekler": dict(k.get("ekler") or {})} for k in icerikler],
         "plan": [asdict(o) for o in plan],
         "uslup_ornekleri": list(uslup_ornekleri or []),
     }
     return json.dumps(veri, ensure_ascii=False, indent=2)
+
+
+def _fiyat(deger) -> float | None:
+    """Kaydedilen ürün fiyatı: pozitif, makul bir sayı değilse yok sayılır."""
+    if isinstance(deger, bool) or not isinstance(deger, (int, float)):
+        return None
+    return float(deger) if math.isfinite(deger) and 0 < deger <= 10_000_000 else None
 
 
 def _liste(deger) -> list:
@@ -341,6 +350,7 @@ def ice_aktar(veri: bytes | str) -> tuple[list[dict], list[PlanOgesi], list[str]
             kayit["id"] = yeni_id()
         ekler = k.get("ekler") if isinstance(k.get("ekler"), dict) else {}
         kayit["ekler"] = {a: _metin(ekler, a) for a in EK_ANAHTARLARI if _metin(ekler, a)}
+        kayit["fiyat"] = _fiyat(k.get("fiyat"))
         icerikler.append(kayit)
 
     plan = []

@@ -7,6 +7,9 @@ pandas>=2.0
 pytrends>=4.9
 # Görsel stüdyosu: paylaşım görseli, katalog PDF, hızlı fotoğraf düzeltme
 Pillow>=10.1
+# Kullanıcı hesapları: yerelde SQLite, canlıda Neon Postgres (DATABASE_URL)
+SQLAlchemy>=2.0
+psycopg[binary]>=3.2
 numpy>=1.24
 
 # İçerik kalite sınıflandırıcısı (kalite_egit.py / kalite.py)

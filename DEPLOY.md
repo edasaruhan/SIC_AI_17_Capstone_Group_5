@@ -36,6 +36,20 @@ Yerel Docker ölçümleri (15.09.2026): imaj 1,25 GB · açılış ~1 sn · bir 
 - Uygulama herkese açıktır ve her içerik üretimi sizin Gemini kotanızı kullanır.
 - `main` dalına her `git push` iki servisi de otomatik yeniden dağıtır.
 
+### Kullanıcı hesapları için veritabanı (Neon Postgres)
+
+Araçlar girişten sonra açılır; hesaplar ve içerikler veritabanında saklanır. `DATABASE_URL`
+tanımlı değilse uygulama geçici SQLite kullanır — Render'da bu dosya **her dağıtımda silinir**
+(Hesabım sayfası bu durumda uyarı gösterir).
+
+1. https://neon.tech → ücretsiz hesap → **New project** · Region: **AWS Europe Central 1 (Frankfurt)**
+2. **Connect** → bağlantı dizesini kopyalayın (`postgresql://…neon.tech/…?sslmode=require`)
+3. Render → `uretken-kadin` servisi → **Environment** → `DATABASE_URL` = bu dize → Save
+   (tablolar ilk açılışta otomatik oluşur). Bu dize bir şifre içerir: repoya, sohbete yazmayın.
+
+Şifresini unutan kullanıcıya geçici şifre (yetkili ekip üyesi, `DATABASE_URL` tanımlı ortamda):
+`python src/hesap.py gecici-sifre --eposta kullanici@ornek.com` · Hesap sayısı: `python src/hesap.py sayi`
+
 ---
 
 ## Alternatif: Streamlit Community Cloud
