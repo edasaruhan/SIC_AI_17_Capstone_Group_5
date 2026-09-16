@@ -337,7 +337,8 @@ a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-seri
   background:#fff !important; box-shadow:none; transition:transform .15s ease, box-shadow .15s ease; }}
 [data-testid="stButtonGroup"] button p {{ font-family:'Nunito',sans-serif; font-weight:800; color:var(--ink) !important; }}
 [data-testid="stButtonGroup"] button:hover {{ transform:translateY(-3px) rotate(-1.5deg); border-color:var(--plum) !important; }}
-[data-testid="stButtonGroup"] button[data-testid$="Active"] {{
+[data-testid="stButtonGroup"] button[data-testid$="Active"],
+[data-testid="stButtonGroup"] button[aria-checked="true"], [data-testid="stButtonGroup"] button[aria-pressed="true"] {{
   background:var(--yellow) !important; border-color:var(--ink) !important; box-shadow:var(--golge-sm); }}
 
 /* Açılır bölümler, uyarılar, sekmeler, kod kutuları */

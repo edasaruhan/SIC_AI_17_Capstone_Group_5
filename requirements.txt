@@ -1,5 +1,7 @@
 google-genai>=1.0.0
-streamlit>=1.41
+# Sabit sürüm: arayüz tasarımı (CSS) Streamlit'in iç sayfa yapısına bağlıdır. ">=" ile Render
+# en yeni sürümü kurunca seçili sekme ve kutu çerçeveleri bozuldu. Yükseltmeden önce yerelde deneyin.
+streamlit==1.57.0
 python-dotenv>=1.0
 pandas>=2.0
 pytrends>=4.9
