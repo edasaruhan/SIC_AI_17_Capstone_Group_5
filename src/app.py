@@ -57,6 +57,8 @@ if st.session_state.get("_oturumu_kapat"):
     _veda = st.session_state["_oturumu_kapat"]
     for _a in list(st.session_state.keys()):
         del st.session_state[_a]
+    st.session_state["_cerez"] = ("sil",)          # tarayıcıdaki oturum çerezi de silinsin
+    st.session_state["_cerez_denendi"] = True       # silinen çerezle hemen yeniden giriş denenmesin
     st.query_params["ekran"] = "karsilama"
     st.toast(_veda, icon="👋")
 
@@ -102,6 +104,8 @@ for a, d in varsayilanlar.items():
 # Araç ekranlarının durumu; listeler kopyalanır ki oturumlar aynı nesneyi paylaşmasın.
 for a, d in (*ekran_araclar.VARSAYILANLAR.items(), *ekran_hesap.VARSAYILANLAR.items(), ("basvuru_no", None)):
     st.session_state.setdefault(a, list(d) if isinstance(d, list) else d)
+# Sayfa yenilendiyse ("beni hatırla" çereziyle) girişi geri getir — erişim kapısından önce.
+ekran_hesap.cerezden_oturum_ac()
 # Geçmiş kayıtları kimlikle takvime ve ek formatlara bağlanır; eski oturumlarda eksik olabilir.
 for _k in st.session_state.gecmis:
     _k.setdefault("id", takvim.yeni_id())
@@ -1423,3 +1427,4 @@ else:
 
 # Giriş yapmış kullanıcının içerikleri değiştiyse hesabına kaydedilir (yalnızca değişiklik varsa).
 ekran_hesap.kaydet_gerekirse()
+ekran_hesap.cerezi_uygula()

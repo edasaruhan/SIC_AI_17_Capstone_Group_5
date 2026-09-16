@@ -13,7 +13,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KOK, "src"))
 
 _KLASOR = tempfile.mkdtemp(prefix="uk_basvuru_test_")
-os.environ.pop("DATABASE_URL", None)                       # testler Neon'a asla yazmasın
+os.environ["DATABASE_URL"] = ""     # testler Neon'a asla yazmasın (boş değer: .env yüklense de ezilmez)
 os.environ["HESAP_DB_YOLU"] = os.path.join(_KLASOR, "arayuz.db")
 
 from streamlit.testing.v1 import AppTest  # noqa: E402

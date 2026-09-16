@@ -62,6 +62,8 @@ HESAP_AYDINLATMA = """**Hesabınız ve verileriniz (KVKK)**
   Başka amaçla kullanılmaz, kimseyle paylaşılmaz, reklam için kullanılmaz.
 - **Nerede?** Yurt dışındaki bir bulut veritabanı hizmetinde (Neon) saklanır; bu, KVKK m.9
   kapsamında yurt dışına aktarımdır. İçerik üretimi için anlatımınız ayrıca Google Gemini'ye gönderilir.
+- **Çerez:** Sayfayı yenileyince girişiniz kapanmasın diye tarayıcınıza yalnızca bir oturum çerezi
+  koyarız (en fazla 30 gün; çıkış yapınca silinir). Reklam ya da izleme çerezi kullanmayız.
 - **Ne kadar süre?** Siz hesabınızı silene kadar.
 - **Haklarınız (KVKK m.11):** Hesabım sayfasından verilerinizi indirebilir, şifrenizi değiştirebilir
   ve hesabınızı tüm verileriyle birlikte kalıcı olarak silebilirsiniz."""

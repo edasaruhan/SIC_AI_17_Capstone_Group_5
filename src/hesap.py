@@ -67,6 +67,18 @@ kullanici_verileri = sa.Table(
     sa.Column("belge", sa.Text, nullable=False),
     sa.Column("guncelleme", sa.DateTime(timezone=True), nullable=False),
 )
+# "Beni hatırla": tarayıcıdaki çerezde rastgele bir jeton durur, burada yalnızca SHA-256 özeti tutulur.
+# Veritabanı sızsa bile özetten jeton üretilemez; çıkışta ya da şifre değişince satır silinir → çerez geçersiz.
+oturumlar = sa.Table(
+    "oturumlar", metadata,
+    sa.Column("ozet", sa.String(64), primary_key=True),
+    sa.Column("kullanici_id", sa.String(32), sa.ForeignKey("kullanicilar.id", ondelete="CASCADE"),
+              nullable=False, index=True),
+    sa.Column("olusturma", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("son_kullanma", sa.DateTime(timezone=True), nullable=False),
+)
+UZUN_OTURUM = timedelta(days=30)
+KISA_OTURUM = timedelta(hours=12)
 
 
 @dataclass(frozen=True)
@@ -261,13 +273,65 @@ def gecici_sifre_ata(eposta: str, m: sa.Engine | None = None) -> str:
             sifre_ozeti=sifre_ozeti(gecici), hatali_deneme=0, kilit_bitis=None))
         if sonuc.rowcount == 0:
             raise ValueError("Bu e-posta ile kayıtlı hesap yok.")
+        kimlik = sa.select(kullanicilar.c.id).where(kullanicilar.c.eposta == eposta).scalar_subquery()
+        b.execute(oturumlar.delete().where(oturumlar.c.kullanici_id == kimlik))     # açık oturumlar kapanır
     return gecici
+
+
+def _jeton_ozeti(jeton: str) -> str:
+    return hashlib.sha256(jeton.encode("utf-8")).hexdigest()
+
+
+def oturum_ac(kullanici_id: str, hatirla: bool = True, m: sa.Engine | None = None) -> str:
+    """Tarayıcı çerezine yazılacak jetonu döndürür (yalnızca özeti saklanır)."""
+    jeton = secrets.token_urlsafe(32)
+    simdi = _simdi()
+    with (m or motor()).begin() as b:
+        b.execute(oturumlar.delete().where(oturumlar.c.kullanici_id == kullanici_id,
+                                           oturumlar.c.son_kullanma < simdi))          # süresi geçenleri temizle
+        b.execute(oturumlar.insert().values(ozet=_jeton_ozeti(jeton), kullanici_id=kullanici_id, olusturma=simdi,
+                                            son_kullanma=simdi + (UZUN_OTURUM if hatirla else KISA_OTURUM)))
+    return jeton
+
+
+def oturum_dogrula(jeton: str | None, m: sa.Engine | None = None) -> Kullanici | None:
+    """Çerezdeki jeton geçerliyse kullanıcıyı döndürür; yoksa, süresi geçmişse ya da iptal edildiyse None."""
+    if not jeton or len(jeton) > 200:
+        return None
+    ozet = _jeton_ozeti(jeton)
+    with (m or motor()).begin() as b:
+        satir = b.execute(sa.select(kullanicilar, oturumlar.c.son_kullanma)
+                          .join(oturumlar, oturumlar.c.kullanici_id == kullanicilar.c.id)
+                          .where(oturumlar.c.ozet == ozet)).mappings().first()
+        if satir is None:
+            return None
+        if _utc(satir["son_kullanma"]) <= _simdi():
+            b.execute(oturumlar.delete().where(oturumlar.c.ozet == ozet))
+            return None
+        b.execute(kullanicilar.update().where(kullanicilar.c.id == satir["id"]).values(son_giris=_simdi()))
+    return _kullanici(satir)
+
+
+def oturum_kapat(jeton: str | None, m: sa.Engine | None = None) -> None:
+    if jeton:
+        with (m or motor()).begin() as b:
+            b.execute(oturumlar.delete().where(oturumlar.c.ozet == _jeton_ozeti(jeton)))
+
+
+def diger_oturumlari_kapat(kullanici_id: str, haric_jeton: str | None, m: sa.Engine | None = None) -> None:
+    """Şifre değişince başka cihazlarda açık kalan oturumlar kapanır."""
+    with (m or motor()).begin() as b:
+        kosul = oturumlar.c.kullanici_id == kullanici_id
+        if haric_jeton:
+            kosul = sa.and_(kosul, oturumlar.c.ozet != _jeton_ozeti(haric_jeton))
+        b.execute(oturumlar.delete().where(kosul))
 
 
 def hesabi_sil(kullanici_id: str, sifre: str, m: sa.Engine | None = None) -> None:
     """KVKK m.11: hesabı ve tüm verilerini kalıcı olarak siler."""
     with (m or motor()).begin() as b:
         _sifreyi_dogrula(b, kullanici_id, sifre)
+        b.execute(oturumlar.delete().where(oturumlar.c.kullanici_id == kullanici_id))
         b.execute(kullanici_verileri.delete().where(kullanici_verileri.c.kullanici_id == kullanici_id))
         b.execute(kullanicilar.delete().where(kullanicilar.c.id == kullanici_id))
 

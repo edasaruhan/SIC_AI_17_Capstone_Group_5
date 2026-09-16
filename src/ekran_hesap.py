@@ -12,12 +12,14 @@ Kalıcı veri akışı:
 from __future__ import annotations
 
 import html
+import json
 import os
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 import basvuru
 import ekran_araclar
@@ -29,7 +31,8 @@ import takvim
 KORUMASIZ_EKRANLAR = ("karsilama", "yardim", "api", "giris")
 GIRIS_SEKMELERI = ["🔑 Giriş yap", "✨ Kayıt ol"]
 VARSAYILANLAR = {"kullanici": None, "giris_sonrasi": None, "veri_ozeti": None,
-                 "giris_sekme": GIRIS_SEKMELERI[0]}
+                 "giris_sekme": GIRIS_SEKMELERI[0], "oturum_jetonu": None, "_cerez": None}
+CEREZ_ADI = "uk_oturum"
 
 
 @dataclass
@@ -41,8 +44,16 @@ class Baglam:
 # ---------------------------------------------------------------------------
 # Oturum
 # ---------------------------------------------------------------------------
-def oturumu_baslat(k: hesap.Kullanici) -> None:
+def oturumu_baslat(k: hesap.Kullanici, hatirla: bool | None = None) -> None:
+    """Kullanıcıyı ve verilerini oturuma alır. hatirla verilirse (giriş/kayıt) tarayıcıya oturum çerezi yazılır."""
     icerikler, plan, uslup = hesap.verileri_yukle(k.id)
+    if hatirla is not None:
+        try:
+            jeton = hesap.oturum_ac(k.id, hatirla)
+            st.session_state.oturum_jetonu = jeton
+            st.session_state._cerez = ("yaz", jeton, int(hesap.UZUN_OTURUM.total_seconds()) if hatirla else None)
+        except Exception:
+            pass                                    # çerez yazılamazsa giriş yine çalışır, yalnızca hatırlanmaz
     st.session_state.kullanici = {"id": k.id, "eposta": k.eposta, "ad": k.ad,
                                   "olusturma": k.olusturma.isoformat()}
     st.session_state.gecmis = icerikler
@@ -54,8 +65,56 @@ def oturumu_baslat(k: hesap.Kullanici) -> None:
 
 def oturumu_kapat(mesaj: str) -> None:
     """Oturum bir sonraki çizimin başında temizlenir (app.py), sonra karşılamaya dönülür."""
+    try:
+        hesap.oturum_kapat(st.session_state.get("oturum_jetonu"))    # çerez kalsa bile artık geçersiz
+    except Exception:
+        pass
     st.session_state["_oturumu_kapat"] = mesaj
     st.rerun()
+
+
+def _cerez_oku() -> str | None:
+    try:
+        return st.context.cookies.get(CEREZ_ADI)
+    except Exception:
+        return None
+
+
+def cerezden_oturum_ac() -> None:
+    """Sayfa yenilenince (yeni Streamlit oturumu) tarayıcı çerezindeki jetonla girişi geri getirir."""
+    if st.session_state.get("kullanici") or st.session_state.get("_cerez_denendi"):
+        return
+    st.session_state._cerez_denendi = True
+    jeton = _cerez_oku()
+    if not jeton:
+        return
+    try:
+        k = hesap.oturum_dogrula(jeton)
+        if k is None:
+            st.session_state._cerez = ("sil",)      # süresi geçmiş ya da iptal edilmiş jeton
+            return
+        oturumu_baslat(k)
+        st.session_state.oturum_jetonu = jeton
+    except Exception:
+        pass                                        # veritabanına ulaşılamazsa ziyaretçi olarak devam
+
+
+def cerezi_uygula() -> None:
+    """Bekleyen çerez yazma/silme işlemini tarayıcıda yapar (her çizimin sonunda çağrılır)."""
+    islem = st.session_state.get("_cerez")
+    if not islem:
+        return
+    st.session_state._cerez = None
+    if islem[0] == "yaz":
+        _, jeton, sure = islem
+        deger = f"{CEREZ_ADI}={jeton}; Path=/; SameSite=Lax" + (f"; Max-Age={sure}" if sure else "")
+    else:
+        deger = f"{CEREZ_ADI}=; Path=/; SameSite=Lax; Max-Age=0"
+    # Bileşen iframe'i ana sayfayla aynı kaynaktan açılır; çerez ana sayfaya yazılır. HTTPS'te Secure eklenir.
+    components.html(
+        "<script>(function(){const p=window.parent;"
+        f"p.document.cookie={json.dumps(deger)}+(p.location.protocol==='https:'?'; Secure':'');"
+        "})();</script>", height=0)
 
 
 def kaydet_gerekirse() -> None:
@@ -102,11 +161,13 @@ def giris_ekrani(b: Baglam) -> None:
             eposta = st.text_input("E-posta", key="giris_eposta", autocomplete="email",
                                    placeholder="ornek@eposta.com")
             sifre = st.text_input("Şifre", type="password", key="giris_sifre", autocomplete="current-password")
+            hatirla = st.checkbox("Bu cihazda oturumum açık kalsın (30 gün)", value=True, key="giris_hatirla",
+                                  help="Ortak kullanılan bir bilgisayardaysanız işareti kaldırın.")
             gonder = st.form_submit_button("🔑 Giriş yap", type="primary", use_container_width=True)
         if gonder:
             try:
                 with st.spinner("Giriş yapılıyor…"):
-                    oturumu_baslat(hesap.giris_yap(eposta, sifre))
+                    oturumu_baslat(hesap.giris_yap(eposta, sifre), hatirla=hatirla)
             except ValueError as hata:
                 st.error(str(hata))
             except Exception as hata:
@@ -131,7 +192,7 @@ def giris_ekrani(b: Baglam) -> None:
     if gonder:
         try:
             with st.spinner("Hesabınız oluşturuluyor…"):
-                oturumu_baslat(hesap.kayit_ol(eposta, ad, sifre, tekrar, onay))
+                oturumu_baslat(hesap.kayit_ol(eposta, ad, sifre, tekrar, onay), hatirla=True)
         except ValueError as hata:
             st.error(str(hata))
         except Exception as hata:
@@ -183,7 +244,8 @@ def hesabim_ekrani(b: Baglam) -> None:
         if degistir:
             try:
                 hesap.sifre_degistir(k["id"], eski, yeni, tekrar)
-                st.success("Şifreniz değiştirildi.")
+                hesap.diger_oturumlari_kapat(k["id"], st.session_state.get("oturum_jetonu"))
+                st.success("Şifreniz değiştirildi. Başka cihazlarda açık kalan oturumlarınız kapatıldı.")
             except ValueError as hata:
                 st.error(str(hata))
             except Exception as hata:

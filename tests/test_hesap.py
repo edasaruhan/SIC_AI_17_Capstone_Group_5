@@ -184,6 +184,41 @@ def test_hesap_silme_tum_verileri_kaldirir():
     _kayit(m)                                                                      # aynı e-postayla yeniden kayıt olunabilir
 
 
+# ---------------------------------------------------------------- beni hatırla (oturum jetonları)
+def test_oturum_jetonu_ozeti_saklanir_suresi_ve_iptali():
+    m = yeni_motor("oturum")
+    k = _kayit(m)
+    jeton = hesap.oturum_ac(k.id, hatirla=True, m=m)
+    with m.connect() as b:
+        ozetler = b.execute(sa.select(hesap.oturumlar.c.ozet)).scalars().all()
+    assert jeton not in ozetler and len(ozetler) == 1                               # jetonun kendisi saklanmaz
+    assert hesap.oturum_dogrula(jeton, m=m).id == k.id
+    for gecersiz in (None, "", "uydurma-jeton", "x" * 500):
+        assert hesap.oturum_dogrula(gecersiz, m=m) is None
+
+    kisa = hesap.oturum_ac(k.id, hatirla=False, m=m)
+    with m.begin() as b:                                                             # kısa oturumun süresi doldu
+        b.execute(hesap.oturumlar.update().where(hesap.oturumlar.c.ozet == hesap._jeton_ozeti(kisa))
+                  .values(son_kullanma=datetime.now(timezone.utc) - timedelta(seconds=1)))
+    assert hesap.oturum_dogrula(kisa, m=m) is None and hesap.oturum_dogrula(jeton, m=m) is not None
+
+    hesap.oturum_kapat(jeton, m=m)
+    assert hesap.oturum_dogrula(jeton, m=m) is None
+
+
+def test_sifre_degisince_diger_oturumlar_ve_silmede_hepsi_kapanir():
+    m = yeni_motor("oturum_iptal")
+    k = _kayit(m)
+    bu_cihaz, diger = hesap.oturum_ac(k.id, m=m), hesap.oturum_ac(k.id, m=m)
+    hesap.diger_oturumlari_kapat(k.id, bu_cihaz, m=m)
+    assert hesap.oturum_dogrula(bu_cihaz, m=m) and hesap.oturum_dogrula(diger, m=m) is None
+    gecici = hesap.gecici_sifre_ata("ayse@ornek.com", m=m)                           # geçici şifre de kapatır
+    assert hesap.oturum_dogrula(bu_cihaz, m=m) is None
+    son = hesap.oturum_ac(k.id, m=m)
+    hesap.hesabi_sil(k.id, gecici, m=m)
+    assert hesap.oturum_dogrula(son, m=m) is None
+
+
 if __name__ == "__main__":
     testler = [(ad, f) for ad, f in sorted(globals().items()) if ad.startswith("test_")]
     hatali = 0

@@ -11,7 +11,7 @@ import tempfile
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KOK, "src"))
 
-os.environ.pop("DATABASE_URL", None)                       # testler Neon'a asla yazmasın
+os.environ["DATABASE_URL"] = ""     # testler Neon'a asla yazmasın (boş değer: .env yüklense de ezilmez)
 os.environ["HESAP_DB_YOLU"] = os.path.join(tempfile.mkdtemp(prefix="uk_hesap_arayuz_"), "test.db")
 
 from streamlit.testing.v1 import AppTest  # noqa: E402
@@ -40,6 +40,7 @@ def _dugme(at: AppTest, etiket: str):
 def _giris(at: AppTest, eposta: str, sifre: str) -> None:
     at.text_input(key="giris_eposta").input(eposta)
     at.text_input(key="giris_sifre").input(sifre)
+    at.checkbox(key="giris_hatirla").check()           # AppTest: dokunulmayan form kutusu sonraki çizimde kaybolur
     _dugme(at, "🔑 Giriş yap").click()
     at.run()
 
@@ -57,7 +58,6 @@ def test_araclar_girise_yonlendirir_ve_giristen_sonra_geri_doner():
     _giris(at, "zeynep@ornek.com", "yanlis-sifre")
     assert hesap.GENEL_GIRIS_HATASI in _metin(at) and at.session_state.kullanici is None
     _giris(at, "zeynep@ornek.com", SIFRE)
-    at.run()
     assert not at.exception and at.session_state.kullanici["ad"] == "Zeynep"
     assert at.session_state.ekran == "satis"
     araclar = uygulama("araclar")
@@ -93,6 +93,32 @@ def test_kayit_rizasiz_olmaz_verileri_saklar_ve_yeni_oturumda_geri_gelir():
     _giris(yeni, "ayse@ornek.com", SIFRE)
     assert not yeni.exception and [i["id"] for i in yeni.session_state.gecmis] == ["k1"]
     assert yeni.session_state.gecmis[0]["fiyat"] == 250.0
+
+
+def test_sayfa_yenilenince_cerezle_giris_korunur_cikista_iptal_olur():
+    import ekran_hesap
+    hesap.kayit_ol("elif@ornek.com", "Elif", SIFRE, SIFRE, True)
+    at = uygulama("pano")
+    _giris(at, "elif@ornek.com", SIFRE)
+    at.run()
+    jeton = at.session_state.oturum_jetonu
+    assert jeton and at.session_state._cerez is None                                   # çerez tarayıcıya yazıldı
+
+    eski = ekran_hesap._cerez_oku
+    ekran_hesap._cerez_oku = lambda: jeton                                             # yenileme: yeni oturum + çerez
+    try:
+        yeni = uygulama("pano")
+        assert not yeni.exception and yeni.session_state.kullanici["ad"] == "Elif"
+        assert yeni.session_state.ekran == "pano" and "Hoş geldiniz" not in _metin(yeni)
+        yeni.query_params["ekran"] = "hesap"
+        yeni.run()
+        _dugme(yeni, "🚪 Çıkış yap").click()
+        yeni.run()
+        assert yeni.session_state.kullanici is None
+        tekrar = uygulama("pano")                                                      # çerez kalsa da geçersiz
+        assert tekrar.session_state.kullanici is None and "Hoş geldiniz" in _metin(tekrar)
+    finally:
+        ekran_hesap._cerez_oku = eski
 
 
 def test_cikis_ve_hesap_silme():

@@ -43,7 +43,7 @@ def kayit(no: int) -> dict:
             "instagram": f"IG {no}", "shopier": f"Keçe patik {no}. Yün keçeden elde dikilir.", "ekler": {}}
 
 
-os.environ.pop("DATABASE_URL", None)                       # testler Neon'a asla yazmasın
+os.environ["DATABASE_URL"] = ""     # testler Neon'a asla yazmasın (boş değer: .env yüklense de ezilmez)
 os.environ["HESAP_DB_YOLU"] = os.path.join(tempfile.mkdtemp(prefix="uk_arayuz_test_"), "test.db")
 _KULLANICI = hesap.kayit_ol("test@ornek.com", "Test", "Yumak2026!", "Yumak2026!", True)
 OTURUM = {"id": _KULLANICI.id, "eposta": _KULLANICI.eposta, "ad": _KULLANICI.ad,
