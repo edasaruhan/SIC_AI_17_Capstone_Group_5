@@ -26,6 +26,7 @@ import streamlit.components.v1 as components
 
 import ekran_araclar
 import ekran_hesap
+import ekran_tanitim
 import kalite
 import kvkk
 import logo
@@ -141,6 +142,10 @@ try:
         st.session_state.ekran = _url_ekran
 except Exception:
     pass
+# Tanıtım sayfası ziyaretçi içindir; giriş yapmış kullanıcı doğrudan araç kutusuna girer.
+if st.session_state.kullanici and st.session_state.ekran == "karsilama":
+    st.session_state.ekran = "araclar"
+    _url_yaz("araclar")
 
 
 # ---------------------------------------------------------------------------
@@ -173,17 +178,19 @@ with st.sidebar:
     st.markdown('<div class="kenar-baslik">⚙️ Ayarlar</div>', unsafe_allow_html=True)
     ayar_dugmesi("buyuk_yazi", "🔠 Büyük yazı",
                  "Tüm yazıları büyütür — okuması zor gelenler için.")
-    ayar_dugmesi("ozenli", "✍️ Daha özenli yaz",
-                 "İçerikler biraz daha yavaş hazırlanır ama daha özenli yazılır. "
-                 "Kapalıyken birkaç saniyede hazır olur.")
+    # İçerik ayarları ve geliştirici modu yalnızca giriş yapmış kullanıcıya gösterilir.
+    if st.session_state.kullanici:
+        ayar_dugmesi("ozenli", "✍️ Daha özenli yaz",
+                     "İçerikler biraz daha yavaş hazırlanır ama daha özenli yazılır. "
+                     "Kapalıyken birkaç saniyede hazır olur.")
 
-    st.markdown('<div class="kenar-bolum">🎨 Ton profiliniz</div>', unsafe_allow_html=True)
-    _ornek = len(st.session_state.uslup_ornekleri)
-    st.markdown(f'<div class="durum-cip{" acik" if _ornek else ""}">'
-                f'{f"Aktif · {_ornek} örnek" if _ornek else "Henüz tanımlı değil"}</div>',
-                unsafe_allow_html=True)
-    if st.button("✏️ Sizin gibi yazmasını öğretin", use_container_width=True, key="kenar_ton"):
-        git("ton")
+        st.markdown('<div class="kenar-bolum">🎨 Ton profiliniz</div>', unsafe_allow_html=True)
+        _ornek = len(st.session_state.uslup_ornekleri)
+        st.markdown(f'<div class="durum-cip{" acik" if _ornek else ""}">'
+                    f'{f"Aktif · {_ornek} örnek" if _ornek else "Henüz tanımlı değil"}</div>',
+                    unsafe_allow_html=True)
+        if st.button("✏️ Sizin gibi yazmasını öğretin", use_container_width=True, key="kenar_ton"):
+            git("ton")
 
     st.markdown('<div class="kenar-bolum">🏢 Firmalar ve kurumlar için</div>',
                 unsafe_allow_html=True)
@@ -191,10 +198,11 @@ with st.sidebar:
                  help="Üretken Kadın'ı kendi platformunuza bağlamak için belgeler"):
         git("api")
 
-    st.markdown('<div class="kenar-bolum">📊 Capstone raporu</div>', unsafe_allow_html=True)
-    ayar_dugmesi("gelistirici", "🔧 Geliştirici modu",
-                 "Prompt karşılaştırma, test paneli ve model metrikleri — capstone "
-                 "raporu içindir.")
+    if st.session_state.kullanici:
+        st.markdown('<div class="kenar-bolum">📊 Capstone raporu</div>', unsafe_allow_html=True)
+        ayar_dugmesi("gelistirici", "🔧 Geliştirici modu",
+                     "Prompt karşılaştırma, test paneli ve model metrikleri — capstone "
+                     "raporu içindir.")
     st.markdown('<div class="kenar-not">Yayınlamadan önce metinleri okuyun — son karar '
                 'her zaman sizindir.</div>', unsafe_allow_html=True)
 
@@ -600,42 +608,8 @@ def kalite_ipucu(ig: str, sh: str, kategori: str) -> None:
 # EKRAN: KARŞILAMA (ne iş yapıyoruz)
 # ===========================================================================
 def ekran_karsilama() -> None:
-    st.markdown(f'<div class="karsilama"><div class="amblem" aria-hidden="true">{logo.SVG}</div>' + """
-      <h1>El emeğinizi, <span class="vurgu">arayanların bulacağı</span> bir dile çeviriyoruz.</h1>
-      <p class="aciklama">Ürününüzü kendi cümlelerinizle anlatın; biz sizin için
-         Instagram gönderinizi ve satış sayfası yazınızı hazırlayalım.
-         Yazı yazmayı ya da pazarlamayı bilmenize gerek yok.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="adimlar">
-      <div class="adim"><div class="no">1</div><h4>Siz anlatın</h4>
-        <p>Ürününüzü yazarak ya da sesli anlatın. Nasıl konuşuyorsanız öyle.</p></div>
-      <div class="adim"><div class="no">2</div><h4>Biz hazırlayalım</h4>
-        <p>Sizin sözlerinizden iki hazır metin çıkarırız — dakikalar içinde.</p></div>
-      <div class="adim"><div class="no">3</div><h4>Siz onaylayın</h4>
-        <p>Okur, beğendiğiniz gibi düzeltir ve paylaşırsınız. Söz hep sizde.</p></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="ekran-baslik" style="font-size:1.6rem;margin-top:.4rem">'
-                'Neler yapabilirsiniz?</div>', unsafe_allow_html=True)
-    ekran_araclar.arac_kartlari(_baglam(), "giris")
-
-    st.markdown('<div class="guven">🤍 Yapay zekâ yalnızca yardımcı olur; '
-                'hikâyenizi <b>uydurmaz</b>, abartı yapmaz. Son kararı her zaman '
-                'siz verirsiniz.</div>', unsafe_allow_html=True)
-
-    if st.button("Hadi başlayalım  →", use_container_width=True, type="primary"):
-        git("anlat")
-    if st.button("Nasıl çalıştığını anlat", use_container_width=True):
-        git("yardim")
-    if st.session_state.kullanici:
-        if st.button("🏠 Panoma git", use_container_width=True, key="karsilama_pano"):
-            git("pano")
-    elif st.button("🔑 Giriş yap / Kayıt ol", use_container_width=True, key="karsilama_giris"):
-        git("giris")
+    """Ziyaretçiye tanıtım sayfası (giriş yapmış kullanıcı buraya gelmeden araç kutusuna yönlenir)."""
+    ekran_tanitim.tanitim_sayfasi(ekran_tanitim.Baglam(git=git))
 
 
 # ===========================================================================
@@ -1433,8 +1407,10 @@ else:
         ekran_araclar.gorsel_studyosu(_baglam())
     elif ekran == "satis":
         ekran_araclar.satis_araclari(_baglam())
-    elif ekran == "giris":                      # zaten giriş yapılmışsa araç kutusuna
-        git("araclar")
+    elif ekran == "giris":
+        if st.session_state.kullanici:          # zaten giriş yapılmışsa araç kutusuna
+            git("araclar")
+        ekran_hesap.giris_ekrani(_baglam_hesap())
     elif ekran == "hesap":
         ekran_hesap.hesabim_ekrani(_baglam_hesap())
     else:

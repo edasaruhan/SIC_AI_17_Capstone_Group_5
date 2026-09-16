@@ -84,7 +84,7 @@ def hatasiz(at: AppTest) -> None:
 
 
 # ---------------------------------------------------------------- araç kutusu
-def test_arac_kutusu_ve_karsilama_kartlari_gezinir():
+def test_arac_kutusu_gezinir_ve_giris_yapan_tanitimi_atlar():
     at = uygulama("araclar")
     hatasiz(at)
     assert metinler(at).count('class="arac-karti') == 4
@@ -92,9 +92,20 @@ def test_arac_kutusu_ve_karsilama_kartlari_gezinir():
     assert at.session_state["ekran"] == "gorsel"
     at = uygulama("karsilama")
     hatasiz(at)
-    assert "Neler yapabilirsiniz" in metinler(at)
-    at.button(key="giris_satis").click().run()
-    assert at.session_state["ekran"] == "satis"
+    assert at.session_state["ekran"] == "araclar" and "Hoş geldin, Test!" in metinler(at)
+
+
+def test_ziyaretci_tanitim_sayfasindan_kayda_gider():
+    at = uygulama("karsilama", kullanici=None)
+    hatasiz(at)
+    metin = metinler(at)
+    assert "Neler yapabilirsiniz" in metin and "Kimler için" in metin and "Sık sorulanlar" in metin
+    assert not any(b.key == "ayar_gelistirici" for b in at.button)          # ziyaretçiye geliştirici modu yok
+    at.button(key="tanitim_alt_kayit").click().run()
+    hatasiz(at)
+    assert at.session_state["ekran"] == "giris" and at.session_state["giris_sekme"] == "✨ Kayıt ol"
+    assert any(t.key == "kayit_eposta" for t in at.text_input)
+    assert "önce giriş yapın" not in " ".join(i.value for i in at.info)   # doğrudan gelindi, yönlendirme değil
 
 
 def test_ust_menude_araclar_dugmesi():
