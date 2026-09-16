@@ -28,6 +28,7 @@ import ekran_araclar
 import ekran_hesap
 import kalite
 import kvkk
+import logo
 import prompts
 import takvim
 import trends
@@ -35,7 +36,7 @@ import uret
 
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Üretken Kadın — Emeğin dijital sesi",
-                   page_icon="🧵", layout="centered",
+                   page_icon=logo.page_icon(), layout="centered",
                    initial_sidebar_state="collapsed")
 
 # Streamlit Cloud'da API anahtarı "secret" olarak gelir; uret.py os.getenv okur.
@@ -246,9 +247,9 @@ textarea:focus-visible, select:focus-visible, summary:focus-visible {{
 
 /* Üst bar */
 .ustbar {{ display:flex; align-items:center; gap:.75rem; margin-bottom:.9rem; }}
-.ustbar .logo {{ width:46px; height:46px; border-radius:14px; background:var(--yellow);
-  border:2.5px solid var(--ink); box-shadow:var(--golge-sm); display:grid; place-items:center;
-  font-size:1.45rem; animation:salla 3.2s ease-in-out infinite; }}
+.ustbar .logo {{ width:48px; height:48px; flex:none; border-radius:13px; box-shadow:var(--golge-sm);
+  animation:salla 3.2s ease-in-out infinite; }}
+.ustbar .logo svg, .karsilama .amblem svg {{ width:100%; height:100%; display:block; }}
 .ustbar .ad {{ font-family:'Baloo 2'; font-weight:800; font-size:1.35rem; line-height:1; color:var(--ink); }}
 .ustbar .alt {{ font-size:.82rem; color:var(--muted); font-weight:700; }}
 
@@ -268,9 +269,8 @@ textarea:focus-visible, select:focus-visible, summary:focus-visible {{
 
 /* Karşılama */
 .karsilama {{ text-align:center; padding:.6rem 0 0; animation:gir .5s ease both; }}
-.karsilama .amblem {{ width:94px; height:94px; border-radius:28px; margin:0 auto 1.1rem;
-  background:var(--yellow); border:3px solid var(--ink); box-shadow:var(--golge-lg);
-  display:grid; place-items:center; font-size:2.7rem; animation:zipla 2.4s ease-in-out infinite; }}
+.karsilama .amblem {{ width:100px; height:100px; border-radius:27px; margin:0 auto 1.1rem;
+  box-shadow:var(--golge-lg); animation:zipla 2.4s ease-in-out infinite; }}
 .karsilama h1 {{ font-size:2.6rem; font-weight:800; line-height:1.12; color:var(--ink);
   margin:0 0 .8rem; letter-spacing:-.5px; }}
 .karsilama .vurgu {{ background:var(--pink); padding:0 .4rem; border-radius:12px;
@@ -513,7 +513,7 @@ def ust_bar() -> None:
     hesap_cipi = (f'<div class="hesap-cip" title="{html.escape(kullanici["eposta"])}">👤 '
                   f'{html.escape(kullanici["ad"].split()[0])}</div>' if kullanici else "")
     st.markdown(
-        '<div class="ustbar"><div class="logo">🧵</div>'
+        f'<div class="ustbar"><div class="logo">{logo.SVG}</div>'
         '<div><div class="ad">Üretken Kadın</div>'
         '<div class="alt">Emeğin dijital sesi</div></div>' + hesap_cipi + '</div>',
         unsafe_allow_html=True)
@@ -600,9 +600,7 @@ def kalite_ipucu(ig: str, sh: str, kategori: str) -> None:
 # EKRAN: KARŞILAMA (ne iş yapıyoruz)
 # ===========================================================================
 def ekran_karsilama() -> None:
-    st.markdown("""
-    <div class="karsilama">
-      <div class="amblem" aria-hidden="true">🧶</div>
+    st.markdown(f'<div class="karsilama"><div class="amblem" aria-hidden="true">{logo.SVG}</div>' + """
       <h1>El emeğinizi, <span class="vurgu">arayanların bulacağı</span> bir dile çeviriyoruz.</h1>
       <p class="aciklama">Ürününüzü kendi cümlelerinizle anlatın; biz sizin için
          Instagram gönderinizi ve satış sayfası yazınızı hazırlayalım.
