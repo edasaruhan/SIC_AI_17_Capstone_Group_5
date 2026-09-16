@@ -175,7 +175,6 @@ def giris_ekrani(b: Baglam) -> None:
             else:
                 st.toast(f"Hoş geldiniz, {st.session_state.kullanici['ad']} 🌸")
                 b.git(hedef)
-        st.caption("Şifrenizi unuttuysanız proje ekibine yazın; size geçici bir şifre verelim.")
         return
 
     with st.form("kayit_formu", border=False):
