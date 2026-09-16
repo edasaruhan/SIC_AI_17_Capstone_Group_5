@@ -25,6 +25,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import ekran_araclar
+import ekran_basvuru
 import ekran_hesap
 import ekran_tanitim
 import kalite
@@ -99,7 +100,7 @@ varsayilanlar = {
 for a, d in varsayilanlar.items():
     st.session_state.setdefault(a, d)
 # Araç ekranlarının durumu; listeler kopyalanır ki oturumlar aynı nesneyi paylaşmasın.
-for a, d in (*ekran_araclar.VARSAYILANLAR.items(), *ekran_hesap.VARSAYILANLAR.items()):
+for a, d in (*ekran_araclar.VARSAYILANLAR.items(), *ekran_hesap.VARSAYILANLAR.items(), ("basvuru_no", None)):
     st.session_state.setdefault(a, list(d) if isinstance(d, list) else d)
 # Geçmiş kayıtları kimlikle takvime ve ek formatlara bağlanır; eski oturumlarda eksik olabilir.
 for _k in st.session_state.gecmis:
@@ -455,6 +456,8 @@ a[data-testid^="stBaseLinkButton"] p {{ font-family:'Baloo 2','Nunito',sans-seri
 .gun-karti .tarih b {{ display:block; font-family:'Baloo 2'; font-size:1.45rem; color:var(--ink); }}
 .gun-karti .ad {{ font-weight:800; font-size:.92rem; line-height:1.2; }}
 .gun-karti .kalan {{ font-size:.78rem; color:var(--muted); font-weight:700; }}
+.st-key-basvuru_kutusu {{ background:#fff; border:2.5px solid var(--ink) !important; border-radius:20px !important;
+  box-shadow:var(--golge); padding:.6rem 1rem 1rem !important; margin:.4rem 0 1rem; }}
 /* Hesap */
 .hesap-cip {{ margin-left:auto; font-weight:800; font-size:.9rem; background:#fff; border:2.5px solid var(--ink);
   border-radius:999px; padding:.25rem .8rem; box-shadow:var(--golge-sm); white-space:nowrap; max-width:45%;
@@ -1212,7 +1215,7 @@ def ekran_api() -> None:
     st.markdown("""
     <div class="adimlar">
       <div class="adim"><div class="no">1</div><h4>Başvurun</h4>
-        <p>Kurumunuzu ve kullanım amacınızı iletin; size özel API anahtarı ve günlük kota tanımlanır.</p></div>
+        <p>Aşağıdaki formu doldurun; ekibimiz inceleyip size özel API anahtarı ve günlük kota tanımlar.</p></div>
       <div class="adim"><div class="no">2</div><h4>Deneyin</h4>
         <p>Canlı belgede (/docs) anahtarınızla istekleri deneyin, sonra kendi sunucunuza ekleyin.</p></div>
       <div class="adim"><div class="no">3</div><h4>Üreticilerinize açın</h4>
@@ -1220,8 +1223,10 @@ def ekran_api() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    st.info(f"🔑 **API anahtarı başvurusu:** {iletisim}" if iletisim
-            else "🔑 API anahtarı almak için Üretken Kadın ekibiyle iletişime geçin.")
+    with st.container(border=True, key="basvuru_kutusu"):
+        ekran_basvuru.basvuru_formu()
+    if iletisim:
+        st.caption(f"Sorularınız için: {iletisim}")
     if adres:
         st.link_button("📖 Canlı API belgesini aç (/docs)", f"{adres.rstrip('/')}/docs",
                        use_container_width=True)

@@ -19,7 +19,9 @@ from typing import Callable
 
 import streamlit as st
 
+import basvuru
 import ekran_araclar
+import ekran_basvuru
 import hesap
 import kvkk
 import takvim
@@ -186,6 +188,9 @@ def hesabim_ekrani(b: Baglam) -> None:
                 st.error(str(hata))
             except Exception as hata:
                 st.error(f"Şu an değiştirilemedi; biraz sonra tekrar deneyin. ({type(hata).__name__})")
+
+    if basvuru.yonetici_mi(k["eposta"]):
+        ekran_basvuru.yonetici_paneli()
 
     if st.button("🚪 Çıkış yap", use_container_width=True, key="hesap_cikis"):
         kaydet_gerekirse()

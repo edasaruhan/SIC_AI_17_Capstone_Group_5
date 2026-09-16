@@ -317,6 +317,49 @@ def verileri_yukle(kullanici_id: str, m: sa.Engine | None = None) -> tuple[list[
 # ---------------------------------------------------------------------------
 # Komut satırı (proje ekibi)
 # ---------------------------------------------------------------------------
+def _kontrol() -> int:
+    """Canlı veritabanında uçtan uca deneme; oluşturduğu her kaydı siler (adres ekrana yazılmaz)."""
+    import basvuru
+    eposta, sifre = f"kontrol-{uuid.uuid4().hex[:10]}@uretkenkadin.test", secrets.token_urlsafe(12) + "aA1"
+    adimlar = []
+    k = None
+    try:
+        k = kayit_ol(eposta, "Kontrol", sifre, sifre, True)
+        adimlar.append("hesap açıldı")
+        assert giris_yap(eposta, sifre).id == k.id
+        try:
+            giris_yap(eposta, "yanlis-sifre")
+        except ValueError:
+            adimlar.append("giriş ve hatalı deneme sayacı çalışıyor")
+        icerik = {"id": "k1", "tarih": "2026-01-01", "saat": "10:00", "kategori": "Gıda", "anlatim": "Deneme",
+                  "instagram": "ig", "shopier": "sh", "ekler": {}, "fiyat": 99.5}
+        verileri_kaydet(k.id, belge([icerik], [], ["üslup"]))
+        verileri_kaydet(k.id, belge([icerik], [], ["üslup"]))           # güncelleme yolu
+        assert verileri_yukle(k.id)[0][0]["fiyat"] == 99.5
+        adimlar.append("içerik yazıldı ve okundu")
+        no = basvuru.basvuru_yap("Kontrol Kurumu", basvuru.KURUM_TURLERI[-1], "Kontrol Kişi", eposta, "",
+                                 "Bu kayıt bağlantı denemesi için otomatik oluşturuldu ve silinir.",
+                                 basvuru.AYLIK_HACIMLER[-1], True)
+        basvuru.sil(no)
+        adimlar.append("API başvurusu yazıldı ve silindi")
+        hesabi_sil(k.id, sifre)
+        k = None
+        adimlar.append("test hesabı silindi")
+        print("✅ Veritabanı hazır:\n  - " + "\n  - ".join(adimlar))
+        return 0
+    except Exception as hata:
+        print("❌ Deneme başarısız:", type(hata).__name__, str(hata)[:300])
+        print("   Tamamlanan adımlar:", ", ".join(adimlar) or "yok")
+        return 1
+    finally:
+        if k is not None:                                             # yarıda kaldıysa temizle
+            try:
+                with motor().begin() as b:
+                    b.execute(kullanicilar.delete().where(kullanicilar.c.id == k.id))
+            except Exception:
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
     from dotenv import load_dotenv
     load_dotenv(KOK / ".env")
@@ -325,8 +368,11 @@ def main(argv: list[str] | None = None) -> int:
     g = alt.add_parser("gecici-sifre", help="Şifresini unutan kullanıcıya geçici şifre ata")
     g.add_argument("--eposta", required=True)
     alt.add_parser("sayi", help="Kayıtlı hesap sayısı")
+    alt.add_parser("kontrol", help="Bağlantıyı dene: geçici test hesabı aç, veri yaz/oku, sonra her şeyi sil")
     arg = ayr.parse_args(argv)
     print("Veritabanı:", "kalıcı (DATABASE_URL)" if kalici_mi() else "yerel SQLite")
+    if arg.komut == "kontrol":
+        return _kontrol()
     if arg.komut == "gecici-sifre":
         print("Geçici şifre (yalnızca şimdi gösterilir; kullanıcıya güvenli yoldan iletin):")
         print("  " + gecici_sifre_ata(arg.eposta))

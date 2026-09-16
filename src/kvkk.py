@@ -69,6 +69,22 @@ HESAP_AYDINLATMA = """**Hesabınız ve verileriniz (KVKK)**
 HESAP_RIZA_ETIKETI = ("Aydınlatma metnini okudum; hesap bilgilerimin ve hazırladığım içeriklerin bu "
                       "amaçla yurt dışındaki bir veritabanında saklanmasına **açık rıza** veriyorum.")
 
+# Firmalar için API sayfasındaki başvuru formunda gösterilir
+BASVURU_AYDINLATMA = """**Başvuru bilgileriniz (KVKK)**
+
+- **Ne saklıyoruz?** Kurum adı ve türü, yetkili adı, iş e-postası, web sitesi, kullanım amacı ve
+  tahmini kullanım miktarı.
+- **Ne amaçla?** Yalnızca başvurunuzu değerlendirmek ve size API anahtarıyla ilgili dönüş yapmak için.
+  Pazarlama amacıyla kullanılmaz, kimseyle paylaşılmaz.
+- **Nerede?** Yurt dışındaki bir bulut veritabanı hizmetinde (Neon) saklanır; bu, KVKK m.9 kapsamında
+  yurt dışına aktarımdır.
+- **Ne kadar süre?** Başvurunuz sonuçlandıktan sonra en fazla 1 yıl; siz isterseniz daha önce silinir.
+- **Haklarınız (KVKK m.11):** Bilgilerinizin düzeltilmesini ya da silinmesini, başvuru numaranızla
+  birlikte bize yazarak isteyebilirsiniz."""
+
+BASVURU_RIZA_ETIKETI = ("Aydınlatma metnini okudum; başvuru bilgilerimin bu amaçla yurt dışındaki bir "
+                        "veritabanında saklanmasına **açık rıza** veriyorum.")
+
 # Ayrıntılı politika (Etik/KVKK sekmesinde gösterilir)
 POLITIKA_MADDELERI = [
     ("Hangi veriyi işliyoruz?",

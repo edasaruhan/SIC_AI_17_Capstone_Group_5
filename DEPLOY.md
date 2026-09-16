@@ -47,6 +47,14 @@ tanımlı değilse uygulama geçici SQLite kullanır — Render'da bu dosya **he
 3. Render → `uretken-kadin` servisi → **Environment** → `DATABASE_URL` = bu dize → Save
    (tablolar ilk açılışta otomatik oluşur). Bu dize bir şifre içerir: repoya, sohbete yazmayın.
 
+Bağlantıyı denemek (geçici bir test hesabı açar, veri yazıp okur, sonra hepsini siler):
+`python src/hesap.py kontrol` — yerel `.env` dosyasında `DATABASE_URL` tanımlıyken çalıştırın.
+
+**API başvuruları:** "Firmalar için API" sayfasındaki form başvuruları aynı veritabanına yazar.
+Başvuruları görebilecek hesaplar için Render'da `YONETICI_EPOSTALARI` tanımlayın (virgülle ayrılmış
+e-postalar; bu e-postalarla sitede hesap açılmış olmalı). Başvurular **Hesabım → API başvuruları**
+bölümünde görünür; komut satırından: `python src/basvuru.py liste`.
+
 Şifresini unutan kullanıcıya geçici şifre (yetkili ekip üyesi, `DATABASE_URL` tanımlı ortamda):
 `python src/hesap.py gecici-sifre --eposta kullanici@ornek.com` · Hesap sayısı: `python src/hesap.py sayi`
 
