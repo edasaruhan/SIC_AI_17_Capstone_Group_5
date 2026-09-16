@@ -6,8 +6,6 @@
   • Hızlı düzeltme     : ışık ve kontrast dengesi, hafif keskinlik, kare kırpma (yapay zekâ yok;
                          ürünün rengine dokunmaz: yalnızca parlaklık tonu ayarlanır)
   • Fotoğraftan anlatım: Gemini fotoğrafa bakar, yalnızca GÖRÜNENİ yazar, bilinmeyeni sorar
-  • Arka plan değiştir : Gemini görsel modeli; ürüne dokunmadan yalnızca arka plan. Görsel modelleri
-                         Gemini'nin ücretsiz katmanında kapalıdır → GorselKotaHatasi
   • Paylaşım görseli   : fotoğraf + başlık, Instagram kare / hikâye (Pillow, yapay zekâ yok)
   • Katalog            : ürün kartlarından A4 PDF (Pillow, yapay zekâ yok)
 
@@ -31,8 +29,6 @@ import uret
 
 MAKS_YUKLEME_BAYT = 10 * 1024 * 1024
 MAKS_KENAR = 1600
-GORSEL_MODEL = os.getenv("GEMINI_MODEL_GORSEL", "gemini-3.1-flash-image")
-GORSEL_ZAMAN_ASIMI_MS = 90_000
 
 MUREKKEP = (43, 22, 56)
 TEMALAR = {"🌸 Pembe": (255, 227, 238), "🌼 Sarı": (255, 241, 201),
@@ -41,10 +37,6 @@ VURGULAR = {"🌸 Pembe": (255, 92, 138), "🌼 Sarı": (255, 211, 77),
             "💧 Mavi": (77, 212, 255), "🤍 Krem": (240, 180, 90)}
 BICIMLER = {"📱 Instagram kare": (1080, 1080), "📲 Hikâye (dikey)": (1080, 1920)}
 A4_150DPI = (1240, 1754)
-
-
-class GorselKotaHatasi(RuntimeError):
-    """Görsel modeli kullanılamıyor: args[0] "ucretsiz" (ücretsiz katmanda kapalı) ya da "kota"."""
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +156,7 @@ def hizli_duzelt(img: Image.Image, kare: bool = False) -> Image.Image:
 
 
 # ---------------------------------------------------------------------------
-# Yapay zekâ: fotoğraftan anlatım ve arka plan değiştirme
+# Yapay zekâ: fotoğraftan anlatım
 # ---------------------------------------------------------------------------
 @dataclass
 class FotoAnlatim:
@@ -192,31 +184,6 @@ def foto_anlatim_uret(img: Image.Image, kategori: str, ozenli: bool = False, cli
     return FotoAnlatim(urun, _metin_listesi(veri.get("gorunen_ozellikler")),
                        _metin_listesi(veri.get("renkler")), taslak, _metin_listesi(veri.get("sorular"), 6))
 
-
-def arka_plan_degistir(img: Image.Image, sahne: str, client=None) -> Image.Image:
-    talimat = prompts.arka_plan_talimati(sahne)          # bilinmeyen sahnede ValueError
-    client = client or uret.istemci_olustur()
-    kucuk = img.copy()
-    kucuk.thumbnail((1024, 1024))
-    try:
-        yanit = client.models.generate_content(
-            model=GORSEL_MODEL,
-            contents=[types.Part.from_bytes(data=jpeg(kucuk, 90), mime_type="image/jpeg"), talimat],
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-                http_options=types.HttpOptions(timeout=GORSEL_ZAMAN_ASIMI_MS)))
-    except Exception as hata:
-        metin = str(hata)
-        if "RESOURCE_EXHAUSTED" in metin or "429" in metin:
-            raise GorselKotaHatasi("ucretsiz" if "free_tier" in metin.lower() else "kota") from None
-        raise
-    for aday in (getattr(yanit, "candidates", None) or []):
-        icerik = getattr(aday, "content", None)
-        for parca in (getattr(icerik, "parts", None) or []):
-            veri = getattr(getattr(parca, "inline_data", None), "data", None)
-            if veri:
-                return foto_ac(veri)
-    raise ValueError("Görsel hazırlanamadı. Başka bir sahne seçip tekrar deneyin.")
 
 
 # ---------------------------------------------------------------------------

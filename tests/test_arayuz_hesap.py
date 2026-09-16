@@ -60,6 +60,10 @@ def test_araclar_girise_yonlendirir_ve_giristen_sonra_geri_doner():
     at.run()
     assert not at.exception and at.session_state.kullanici["ad"] == "Zeynep"
     assert at.session_state.ekran == "satis"
+    araclar = uygulama("araclar")
+    araclar.session_state.kullanici = at.session_state.kullanici
+    araclar.run()
+    assert "Hoş geldin, Zeynep!" in _metin(araclar)
 
 
 def test_kayit_rizasiz_olmaz_verileri_saklar_ve_yeni_oturumda_geri_gelir():

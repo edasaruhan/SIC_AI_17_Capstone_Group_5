@@ -116,26 +116,6 @@ def test_gorsel_studyosu_bos_ve_fotografli_hizli_duzeltme():
     assert at.session_state["gs_duzeltilmis"][:2] == b"\xff\xd8"          # JPEG
 
 
-def test_arka_plan_ucretsiz_katman_bilgisi_ve_onayli_indirme():
-    def kota(*a, **k):
-        raise gorsel.GorselKotaHatasi("ucretsiz")
-    with yamala(gorsel, arka_plan_degistir=kota):
-        at = uygulama("gorsel", gs_foto=foto_bayt())
-        at.button(key="gs_yz_btn").click().run()
-    hatasiz(at)
-    assert "ücretsiz katmanında kullanılamıyor" in metinler(at)
-    assert at.session_state["gs_yz"] is None
-
-    with yamala(gorsel, arka_plan_degistir=lambda img, sahne: Image.new("RGB", (400, 400), (250, 240, 230))):
-        at = uygulama("gorsel", gs_foto=foto_bayt())
-        at.button(key="gs_yz_btn").click().run()
-        hatasiz(at)
-        assert at.session_state["gs_yz"] and "İndirmek için önce ürünün değişmediğini" in metinler(at)
-        at.checkbox(key="gs_onay").check().run()
-    hatasiz(at)
-    assert "yapay zekâ ile düzenlendiğini belirtmeniz" in metinler(at)
-
-
 def test_fotograftan_anlatim_taslakla_anlat_ekranina_gecer():
     sahte = gorsel.FotoAnlatim("örgü patik", ["zikzak desen"], ["pembe"],
                                "Pembe patiklerimi [malzeme] ile örüyorum.", ["Hangi ipi kullandınız?"])

@@ -151,27 +151,6 @@ def test_foto_anlatim_fotografi_gonderir_ve_belirsizi_reddeder():
     _hata_bekle(gorsel.foto_anlatim_uret, dama(), "Gıda", client=belirsiz)
 
 
-def test_arka_plan_ucretsiz_katman_hatasi_ve_basari():
-    sahne = next(iter(gorsel.prompts.ARKA_PLAN_SAHNELERI))
-    hata = Exception("429 RESOURCE_EXHAUSTED quotaMetric generativelanguage.googleapis.com/generate_content_free_tier_requests")
-    try:
-        gorsel.arka_plan_degistir(dama(), sahne, client=SahteIstemci(hata=hata))
-        raise AssertionError("GorselKotaHatasi bekleniyordu")
-    except gorsel.GorselKotaHatasi as e:
-        assert e.args[0] == "ucretsiz"
-
-    tampon = io.BytesIO()
-    Image.new("RGB", (512, 512), (240, 230, 220)).save(tampon, "PNG")
-    c = SahteIstemci(_Yanit(gorsel_bayt=tampon.getvalue()))
-    sonuc = gorsel.arka_plan_degistir(dama(), sahne, client=c)
-    assert sonuc.size == (512, 512)
-    model, contents, config = c.cagrilar[0]
-    assert model == gorsel.GORSEL_MODEL and config.response_modalities == ["IMAGE"]
-    assert "HİÇ DEĞİŞTİRME" in contents[1]
-    _hata_bekle(gorsel.arka_plan_degistir, dama(), "Uzay", client=c)
-    _hata_bekle(gorsel.arka_plan_degistir, dama(), sahne, client=SahteIstemci(_Yanit(metin="görsel yok")))
-
-
 if __name__ == "__main__":
     testler = [(ad, f) for ad, f in sorted(globals().items()) if ad.startswith("test_")]
     hatali = 0

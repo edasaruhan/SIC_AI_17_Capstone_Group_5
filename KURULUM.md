@@ -87,7 +87,7 @@ Tarayıcıda otomatik açılır (`http://localhost:8501`).
 | `src/uret.py` | Gemini çağrısı, çıktının iki kanala ayrıştırılması, SEO kapsam ölçümü |
 | `src/app.py` | Streamlit arayüzü — gir, üret, düzenle, onayla, planla |
 | `src/takvim.py` | İçerik takvimi: paylaşım günü önerisi, telefon takvimi (.ics), kaydet/yükle |
-| `src/gorsel.py` | Görsel stüdyosu: fotoğraf kalitesi, hızlı düzeltme, fotoğraftan anlatım, arka plan, paylaşım görseli, katalog PDF |
+| `src/gorsel.py` | Görsel stüdyosu: fotoğraf kalitesi, hızlı düzeltme, fotoğraftan anlatım, paylaşım görseli, katalog PDF |
 | `src/satis.py` | Satış araçları: fiyat hesaplayıcı, müşteriye cevap, pazaryeri ilanı, özel gün kampanyaları |
 | `src/ekran_araclar.py` | Araç kutusu, görsel stüdyosu ve satış araçları ekranları |
 | `tests/` | API anahtarı gerektirmeyen testler: `test_takvim`, `test_hashtag`, `test_satis`, `test_gorsel`, `test_api`, `test_arayuz_araclar` (hepsi `python tests/<ad>.py` ile çalışır) |

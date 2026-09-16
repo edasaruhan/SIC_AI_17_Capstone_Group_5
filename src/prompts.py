@@ -454,7 +454,7 @@ KATEGORI_KELIMELERI = {
 
 
 # ---------------------------------------------------------------------------
-# 8) GÖRSEL STÜDYOSU — fotoğraftan anlatım ve arka plan değiştirme
+# 8) GÖRSEL STÜDYOSU — fotoğraftan anlatım
 # ---------------------------------------------------------------------------
 def foto_anlatim(kategori: str) -> str:
     return f"""{SISTEM_TALIMATI}
@@ -476,24 +476,6 @@ Kurallar:
 Yalnızca şu JSON'u ver:
 {{"urun": "", "gorunen_ozellikler": [], "renkler": [], "anlatim_taslagi": "", "sorular": []}}"""
 
-
-ARKA_PLAN_SAHNELERI = {
-    "⬜ Beyaz stüdyo": "düz, temiz beyaz bir stüdyo zemini ve ürünün altında yumuşak, doğal bir gölge",
-    "🪵 Açık ahşap masa": "açık renk, sade bir ahşap masa yüzeyi ve yumuşak gün ışığı",
-    "🪟 Pencere ışığı": "pencere kenarından gelen yumuşak doğal ışık ve sade, bulanık bir ev ortamı",
-    "🌸 Pastel zemin": "düz, açık pastel pembe bir zemin ve eşit stüdyo ışığı",
-    "🧺 Keten kumaş": "doğal, açık renk keten kumaştan sade bir zemin",
-}
-
-
-def arka_plan_talimati(sahne: str) -> str:
-    if sahne not in ARKA_PLAN_SAHNELERI:
-        raise ValueError(f"Bilinmeyen sahne: {sahne}")
-    return ("Bu, el emeğiyle üretilmiş bir ürünün fotoğrafı. ÜRÜNÜN KENDİSİNİ HİÇ DEĞİŞTİRME: "
-            "şekli, rengi, deseni, dokusu, boyutu, sayısı ve üzerindeki yazılar aynen kalsın. "
-            "Yeni nesne, süs, etiket ya da yazı ekleme; ürünü kırpma, güzelleştirme ya da onarma. "
-            f"Yalnızca arka planı şöyle değiştir: {ARKA_PLAN_SAHNELERI[sahne]}. "
-            "Işığı ürünün gerçek rengini bozmadan dengele. Sonuç gerçekçi, sade bir ürün fotoğrafı olsun.")
 
 
 # ---------------------------------------------------------------------------

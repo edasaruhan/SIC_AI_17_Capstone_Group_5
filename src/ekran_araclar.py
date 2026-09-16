@@ -21,7 +21,6 @@ import streamlit as st
 
 import gorsel
 import kvkk
-import prompts
 import satis
 import takvim
 import uret
@@ -32,7 +31,7 @@ SATIS_SEKMELER = ["💰 Fiyat hesapla", "💬 Müşteriye cevap", "🛒 Pazaryer
 # app.py oturum varsayılanlarına eklenir
 VARSAYILANLAR = {
     "gs_sekme": GS_SEKMELER[0], "satis_sekme": SATIS_SEKMELER[0], "secili_kayit_id": None,
-    "gs_foto": None, "gs_foto_kimlik": None, "gs_duzeltilmis": None, "gs_yz": None,
+    "gs_foto": None, "gs_foto_kimlik": None, "gs_duzeltilmis": None,
     "gs_anlatim": None, "gs_paylasim": None, "kat_pdf": None,
     "mc_cevap": None, "ilan_sonuc": None, "ilan_ceviri": None, "og_oneri": None, "ozel_gunler_ek": [],
 }
@@ -136,7 +135,12 @@ def arac_kartlari(b: Baglam, anahtar: str) -> None:
 # ===========================================================================
 def arac_kutusu(b: Baglam) -> None:
     b.ust_bar()
-    _baslik("Araç kutunuz", "🧰", "Ne yapmak istersiniz? Bir araç seçin.")
+    kullanici = st.session_state.get("kullanici")
+    if kullanici:
+        _baslik(f"Hoş geldin, {html.escape(kullanici['ad'].split()[0])}!", "👋",
+                "Bugün ne yapmak istersin? Bir araç seç.")
+    else:
+        _baslik("Araç kutunuz", "🧰", "Ne yapmak istersiniz? Bir araç seçin.")
     arac_kartlari(b, "kutu")
 
 
@@ -181,7 +185,7 @@ def _foto_al() -> None:
         st.warning(str(hata))
         return
     st.session_state.update(gs_foto=gorsel.jpeg(img, 92), gs_foto_kimlik=kimlik, gs_duzeltilmis=None,
-                            gs_yz=None, gs_anlatim=None, gs_paylasim=None)
+                            gs_anlatim=None, gs_paylasim=None)
 
 
 def gorsel_studyosu(b: Baglam) -> None:
@@ -203,7 +207,7 @@ def gorsel_studyosu(b: Baglam) -> None:
     st.image(st.session_state.gs_foto, width=320)
     st.markdown(_kalite_karti(gorsel.kalite_olc(img)), unsafe_allow_html=True)
     if st.button("🗑️ Fotoğrafı kaldır", key="gs_kaldir"):
-        st.session_state.update({k: None for k in ("gs_foto", "gs_foto_kimlik", "gs_duzeltilmis", "gs_yz",
+        st.session_state.update({k: None for k in ("gs_foto", "gs_foto_kimlik", "gs_duzeltilmis",
                                                    "gs_anlatim", "gs_paylasim")})
         st.rerun()
 
@@ -227,39 +231,6 @@ def _guzellestir(img) -> None:
         st.download_button("⬇️ Düzeltilmiş fotoğrafı indir", st.session_state.gs_duzeltilmis,
                            file_name="uretken_kadin_duzeltilmis.jpg", mime="image/jpeg",
                            key="gs_duz_indir", use_container_width=True)
-
-    st.markdown('<div class="kart-baslik" style="margin-top:1.4rem">🪄 Arka planı değiştir '
-                '<span class="cip">yapay zekâ</span></div>', unsafe_allow_html=True)
-    st.caption("Ürününüz aynen kalır, yalnızca arka plan değişir. Bu özellik Google Gemini'nin "
-               "ücretli katmanını gerektirir.")
-    sahneler = list(prompts.ARKA_PLAN_SAHNELERI)
-    sahne = st.pills("Sahne", sahneler, default=sahneler[0], key="gs_sahne",
-                     label_visibility="collapsed") or sahneler[0]
-    if st.button("🪄 Arka planı değiştir", key="gs_yz_btn", use_container_width=True):
-        kaynak = gorsel.foto_ac(st.session_state.gs_duzeltilmis or st.session_state.gs_foto)
-        with st.spinner("Yeni arka plan hazırlanıyor… (yarım dakikayı bulabilir)"):
-            try:
-                st.session_state.gs_yz = gorsel.jpeg(gorsel.arka_plan_degistir(kaynak, sahne), 92)
-                st.session_state.gs_onay = False
-            except gorsel.GorselKotaHatasi as hata:
-                if hata.args and hata.args[0] == "ucretsiz":
-                    st.info("🔒 **Bu özellik şu an kapalı.** Görsel üreten yapay zekâ modelleri Google "
-                            "Gemini'nin ücretsiz katmanında kullanılamıyor. Proje ekibi Google AI "
-                            "Studio'da faturalandırmayı açtığında bu düğme çalışır. O zamana kadar "
-                            "**Hızlı düzeltme**'yi kullanabilirsiniz.")
-                else:
-                    st.warning("Görsel hazırlama kotası şu an dolu; biraz sonra tekrar deneyin.")
-            except Exception as hata:
-                _hata_goster(hata, "görsel hazırlanamadı")
-    if st.session_state.gs_yz:
-        _once_sonra(st.session_state.gs_duzeltilmis or st.session_state.gs_foto, st.session_state.gs_yz)
-        if st.checkbox("Ürünümün değişmediğini kontrol ettim (şekli, rengi, deseni aynı)", key="gs_onay"):
-            st.download_button("⬇️ Yeni fotoğrafı indir", st.session_state.gs_yz,
-                               file_name="uretken_kadin_yz_duzenlendi.jpg", mime="image/jpeg",
-                               key="gs_yz_indir", use_container_width=True)
-            st.caption("Paylaşırken fotoğrafın yapay zekâ ile düzenlendiğini belirtmeniz önerilir.")
-        else:
-            st.caption("İndirmek için önce ürünün değişmediğini kontrol edin.")
 
 
 def _foto_anlatim(b: Baglam, img) -> None:
@@ -299,8 +270,6 @@ def _paylasim_gorseli(b: Baglam) -> None:
     fotolar = {"Orijinal": st.session_state.gs_foto}
     if st.session_state.gs_duzeltilmis:
         fotolar["Hızlı düzeltilmiş"] = st.session_state.gs_duzeltilmis
-    if st.session_state.gs_yz and st.session_state.get("gs_onay"):
-        fotolar["Yapay zekâ ile düzenlenmiş"] = st.session_state.gs_yz
     hangi = st.radio("Hangi fotoğraf?", list(fotolar), horizontal=True, key="gs_pay_foto")
     kayit = b.kayit_bul(st.session_state.get("secili_kayit_id") or st.session_state.get("aktif_id"))
     baslik = st.text_input("Başlık", value=takvim.baslik_uret(kayit["anlatim"]) if kayit else "",
