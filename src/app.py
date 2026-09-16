@@ -6,7 +6,7 @@ Tasarım felsefesi: kullanıcı teknolojiden anlamayan bir üreticidir. Bu yüzd
 her şey TEK panoda yığılmaz; adım adım, sade bir akış vardır:
     Karşılama (ne yapıyoruz) → Anlat → Sonuç
 Mühendis/rapor işleri (prompt karşılaştırma, test paneli, ML metrikleri, toplu
-üretim) kenar çubuğundaki "Geliştirici modu" arkasına gizlenmiştir.
+üretim) "Geliştirici / rapor" ekranındadır; yalnızca yöneticiler Hesabım sayfasından açar.
 
 Çalıştırmak için:
     streamlit run src/app.py
@@ -24,6 +24,7 @@ from datetime import timedelta
 import streamlit as st
 import streamlit.components.v1 as components
 
+import basvuru
 import ekran_araclar
 import ekran_basvuru
 import ekran_hesap
@@ -203,17 +204,13 @@ with st.sidebar:
                  help="Üretken Kadın'ı kendi platformunuza bağlamak için belgeler"):
         git("api")
 
-    if st.session_state.kullanici:
-        st.markdown('<div class="kenar-bolum">📊 Capstone raporu</div>', unsafe_allow_html=True)
-        ayar_dugmesi("gelistirici", "🔧 Geliştirici modu",
-                     "Prompt karşılaştırma, test paneli ve model metrikleri — capstone "
-                     "raporu içindir.")
     st.markdown('<div class="kenar-not">Yayınlamadan önce metinleri okuyun — son karar '
                 'her zaman sizindir.</div>', unsafe_allow_html=True)
 
 buyuk_yazi = st.session_state.buyuk_yazi
 ozenli = st.session_state.ozenli
-gelistirici = st.session_state.gelistirici
+# Geliştirici/rapor ekranı yalnızca yöneticiler içindir (Hesabım'dan açılır; toplu üretim kota harcar).
+gelistirici = st.session_state.gelistirici and basvuru.yonetici_mi((st.session_state.kullanici or {}).get("eposta"))
 
 TABAN = "18.5px" if buyuk_yazi else "16.5px"
 
@@ -1261,8 +1258,10 @@ def ekran_gelistirici() -> None:
     ust_bar()
     st.markdown('<div class="ekran-baslik dev-baslik">🔧 Geliştirici / Rapor</div>',
                 unsafe_allow_html=True)
-    st.caption("Bu bölüm capstone raporu içindir; son kullanıcı akışında görünmez. "
-               "Kenar çubuğundaki düğmeden kapatabilirsiniz.")
+    st.caption("Bu bölüm capstone raporu içindir; yalnızca yöneticiler Hesabım sayfasından açabilir.")
+    if st.button("✖️ Rapor ekranını kapat", key="gelistirici_kapat"):
+        st.session_state.gelistirici = False
+        st.rerun()
     t_karsi, t_toplu, t_panel = st.tabs(
         ["Prompt karşılaştırma", "Toplu üretim", "Test paneli & model"])
 

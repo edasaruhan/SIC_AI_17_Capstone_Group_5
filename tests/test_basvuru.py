@@ -161,6 +161,16 @@ def test_ziyaretci_formdan_basvurur_ve_yonetici_gorur():
             metin = " ".join(x.value for x in h.markdown)
             assert ("form@ornekpazar.com" in metin) is gorur and \
                    any("API başvuruları" in e.label for e in h.expander) is gorur
+            assert not any(b.key == "ayar_gelistirici" for b in h.button)     # kenar çubuğunda yok
+            assert any(b.key == "hesap_gelistirici" for b in h.button) is gorur
+            # geliştirici/rapor ekranı açık istense bile yalnızca yöneticiye görünür
+            d = AppTest.from_file(APP, default_timeout=90)
+            d.query_params["ekran"] = "araclar"
+            d.session_state["kullanici"] = h.session_state["kullanici"]
+            d.session_state["gelistirici"] = True
+            d.run()
+            assert not d.exception
+            assert any("Geliştirici / Rapor" in x.value for x in d.markdown) is gorur
     finally:
         os.environ.pop("YONETICI_EPOSTALARI", None)
 

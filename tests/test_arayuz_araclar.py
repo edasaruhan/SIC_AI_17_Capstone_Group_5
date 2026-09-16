@@ -100,7 +100,7 @@ def test_ziyaretci_tanitim_sayfasindan_kayda_gider():
     hatasiz(at)
     metin = metinler(at)
     assert "Neler yapabilirsiniz" in metin and "Kimler için" in metin and "Sık sorulanlar" in metin
-    assert not any(b.key == "ayar_gelistirici" for b in at.button)          # ziyaretçiye geliştirici modu yok
+    assert not any(b.key == "ayar_gelistirici" for b in at.button)          # kenar çubuğunda geliştirici modu yok
     at.button(key="tanitim_alt_kayit").click().run()
     hatasiz(at)
     assert at.session_state["ekran"] == "giris" and at.session_state["giris_sekme"] == "✨ Kayıt ol"

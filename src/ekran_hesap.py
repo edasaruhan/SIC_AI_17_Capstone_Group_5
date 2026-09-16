@@ -252,6 +252,10 @@ def hesabim_ekrani(b: Baglam) -> None:
 
     if basvuru.yonetici_mi(k["eposta"]):
         ekran_basvuru.yonetici_paneli()
+        if st.button("🔧 Geliştirici / rapor ekranı (capstone)", use_container_width=True, key="hesap_gelistirici",
+                     help="Prompt karşılaştırma, toplu üretim, test paneli ve model metrikleri"):
+            st.session_state.gelistirici = True
+            st.rerun()
 
     if st.button("🚪 Çıkış yap", use_container_width=True, key="hesap_cikis"):
         kaydet_gerekirse()
