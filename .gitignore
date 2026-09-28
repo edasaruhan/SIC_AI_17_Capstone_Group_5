@@ -32,3 +32,6 @@ data/yerel.db
 # Isletim sistemi
 .DS_Store
 Thumbs.db
+
+# Yerel gelistirme ayarlari (kodun parcasi degil)
+.claude/
