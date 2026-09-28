@@ -1,0 +1,17 @@
+# Üretken Kadın — Streamlit tema ve sunucu ayarları
+# Renkler app.py'deki tasarım sistemiyle (UI/UX Pro Max) uyumludur.
+
+[theme]
+base = "light"
+primaryColor = "#8A2A6B"
+backgroundColor = "#FFF8FC"
+secondaryBackgroundColor = "#FFF1F7"
+textColor = "#2B1638"
+font = "sans serif"
+
+[server]
+# Yükleme boyutu (sesli anlatım/CSV) için makul sınır
+maxUploadSize = 25
+
+[browser]
+gatherUsageStats = false

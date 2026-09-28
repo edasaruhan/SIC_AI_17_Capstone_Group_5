@@ -1,0 +1,34 @@
+# Üretken Kadın arayüzü (Streamlit) — Render ve benzeri platformlar için
+# Streamlit Community Cloud yerine kullanılır: Render'ın GitHub izni tek depoyla sınırlanabilir.
+#   docker build -f Dockerfile.arayuz -t uretken-kadin-arayuz .
+#   docker run -p 8501:8501 -e GEMINI_API_KEY=... uretken-kadin-arayuz
+# Render: Dockerfile Path = ./Dockerfile.arayuz · Health Check Path = /_stcore/health
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8501
+
+# Paylaşım görseli ve katalogdaki Türkçe harfler için yazı tipi (python:slim'de yazı tipi yok)
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ src/
+COPY data/ data/
+# Geliştirici/rapor modundaki test paneli ve model metrikleri (capstone kanıtı)
+COPY ciktilar/ ciktilar/
+# "Firmalar için API" sayfası belgeyi buradan okur
+COPY API.md API.md
+COPY .streamlit/config.toml .streamlit/config.toml
+
+# root olmayan kullanıcı; data/ yazılabilir (Google Trends önbelleği)
+RUN useradd --create-home uygulama && chown -R uygulama /app
+USER uygulama
+
+EXPOSE 8501
+# Gizli bilgiler (GEMINI_API_KEY, API_ADRESI, API_ILETISIM) platformda ortam değişkeni olarak verilir.
+CMD ["sh", "-c", "streamlit run src/app.py --server.port ${PORT} --server.address 0.0.0.0 --server.headless true"]

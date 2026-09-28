@@ -93,6 +93,32 @@ flowchart LR
 
 </div>
 
+---
+
+## 💻 Kod, kurulum ve canlı sürüm
+
+Bu depo artık projenin **tüm kaynak kodunu** içerir (36 commit'lik geliştirme geçmişiyle birlikte).
+
+| Ne | Nerede |
+|---|---|
+| 🌐 Canlı site | https://uretken-kadin.onrender.com |
+| 🔌 Firmalar için REST API | https://uretken-kadin-api.onrender.com/docs |
+| 🧰 Kod rehberi (mimari, dosya yapısı) | [KOD_README.md](KOD_README.md) |
+| ⚙️ Kurulum ve çalıştırma | [KURULUM.md](KURULUM.md) |
+| 🚀 Yayına alma (Render, Neon) | [DEPLOY.md](DEPLOY.md) |
+| 📚 API belgeleri | [API.md](API.md) |
+
+```bash
+pip install -r requirements.txt
+streamlit run src/app.py
+```
+
+Testler (internet ve API anahtarı gerektirmez):
+
+```bash
+python tests/test_hesap.py
+```
+
 <div align="center">
 
 <br/>

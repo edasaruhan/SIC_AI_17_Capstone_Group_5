@@ -1,0 +1,34 @@
+# API anahtarlari - ASLA GitHub'a gitmemeli
+.env
+*.key
+# Is ortagi API anahtar ozetleri (src/api_guvenlik.py uretir)
+api_anahtarlari.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Not: ciktilar/ klasoru BILEREK gitignore'a alinmadi.
+# Toplu test sonuclari capstone kaniti; ekip arkadasinin kendi API kotasini
+# harcamadan gorebilmesi icin repoda tutuluyor.
+*.log
+
+# Egitilmis model ikilisi (surume duyarli; kalite_egit.py ile yeniden uretilir).
+# ciktilar/model/ altindaki metrik ve grafikler BILEREK tutulur (capstone kaniti).
+models/
+
+# Calisma-aninda uretilen Google Trends onbellegi
+data/trends_onbellek.json
+# Yerel hesap veritabani (kullanici e-postalari ve icerikleri) - ASLA repoya girmemeli
+data/yerel.db
+*.db
+
+# Streamlit secret'lari ASLA repoya girmemeli (config.toml girer, secrets.toml girmez)
+.streamlit/secrets.toml
+
+# Isletim sistemi
+.DS_Store
+Thumbs.db
