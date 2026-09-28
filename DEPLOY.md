@@ -115,6 +115,26 @@ bölümünde görünür; komut satırından: `python src/basvuru.py liste`.
    Sana `https://<isim>.streamlit.app` gibi bir adres verilir — **bu adresi
    telefonda da açabilirsin**.
 
+## İki depo (yayın deposu + capstone deposu)
+
+Kod iki yerde durur:
+
+| Depo | Rolü |
+|---|---|
+| `Tugce-hub/Uretken_Kadin` (özel) | **Yayın deposu.** Render site ve API'yi buradan kurar; `main`'e her push canlıyı günceller. |
+| `edasaruhan/SIC_AI_17_Capstone_Group_5` (herkese açık) | **Capstone deposu.** Hoca ve ekip kodu, raporları ve geliştirme geçmişini burada görür. Render'a bağlı değildir. |
+
+Capstone deposundaki `main`, yayın deposunun `main`'ini içeren `samsung-main` dalından güncellenir.
+Her ikisine birden yüklemek için proje klasöründe:
+
+```powershell
+.\ikisine_yukle.ps1
+```
+
+Render'ı capstone deposundan yayın yapacak şekilde değiştirmek isterseniz: GitHub → Settings →
+Applications → Render → Configure ile yeni depoya izin verin, servisin deposunu değiştirin (depo bir
+organizasyondaysa yöneticinin onayı gerekir) ve **tüm ortam değişkenlerini** yeni servise yeniden girin.
+
 ## Güncelleme
 
 Kodda değişiklik yapıp `git push origin main` dediğinde uygulama **otomatik**
