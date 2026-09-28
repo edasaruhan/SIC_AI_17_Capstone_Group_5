@@ -35,3 +35,6 @@ Thumbs.db
 
 # Yerel gelistirme ayarlari (kodun parcasi degil)
 .claude/
+
+# Ekip ici ilerleme notu (kodun parcasi degil)
+ilerleme_baris.md
