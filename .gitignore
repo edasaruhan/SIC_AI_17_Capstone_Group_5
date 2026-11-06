@@ -38,3 +38,7 @@ Thumbs.db
 
 # Ekip ici ilerleme notu (kodun parcasi degil)
 ilerleme_baris.md
+
+# Sunum ve rapor dosyalari (proje klasorunde durur, depoya girmez)
+Uretken_Kadin_Sunum.pdf
+Uretken_Kadin_Uygulama_Yol_Haritasi.pdf

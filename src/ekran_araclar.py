@@ -24,6 +24,7 @@ import kvkk
 import satis
 import takvim
 import uret
+import video
 
 GS_SEKMELER = ["✨ Güzelleştir", "🔍 Fotoğraftan anlatım", "🖼️ Paylaşım görseli", "📒 Katalog"]
 SATIS_SEKMELER = ["💰 Fiyat hesapla", "💬 Müşteriye cevap", "🛒 Pazaryeri ilanı", "🎉 Özel günler"]
@@ -141,6 +142,7 @@ def arac_kutusu(b: Baglam) -> None:
                 "Bugün ne yapmak istersin? Bir araç seç.")
     else:
         _baslik("Araç kutunuz", "🧰", "Ne yapmak istersiniz? Bir araç seçin.")
+    video.dugme("araclar_video", f"▶️ İlk kez mi? Nasıl kullanılır, izleyin ({video.SURE})")
     arac_kartlari(b, "kutu")
 
 

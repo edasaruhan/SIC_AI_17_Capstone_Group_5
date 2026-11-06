@@ -36,6 +36,7 @@ import prompts
 import takvim
 import trends
 import uret
+import video
 
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Üretken Kadın — Emeğin dijital sesi",
@@ -1131,6 +1132,7 @@ def ekran_ton() -> None:
 def ekran_yardim() -> None:
     ust_bar()
     st.markdown('<div class="ekran-baslik">Nasıl çalışır?</div>', unsafe_allow_html=True)
+    video.dugme("yardim_video")
     st.markdown("""
     <div class="kart"><div class="kart-baslik">1 · Siz anlatın</div>
       <p>Ürününüzü kendi cümlelerinizle yazın ya da sesli anlatın. Teknik bilgi gerekmez.</p></div>
